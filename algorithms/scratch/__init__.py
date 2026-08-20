@@ -1,0 +1,3 @@
+"""
+algorithms.scratch package.
+"""

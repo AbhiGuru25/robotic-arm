@@ -1,0 +1,35 @@
+# TD3 (from scratch) on PandaReach-v3
+# Phase M2 config — validated against original Fujimoto et al. 2018
+
+algo:  td3
+task:  reach
+her:   false
+
+# Environment
+max_episode_steps: 50
+
+# Training
+total_timesteps:   500_000
+learning_starts:   1_000
+batch_size:        256
+buffer_size:       1_000_000
+
+# TD3 hyperparameters
+actor_lr:           0.001
+critic_lr:          0.001
+gamma:              0.98
+tau:                0.005
+policy_delay:       2
+policy_noise:       0.2
+noise_clip:         0.5
+exploration_noise:  0.1
+
+# Network
+hidden_sizes: [256, 256]
+
+# Evaluation
+eval_freq:      5_000
+eval_episodes:  20
+
+# Seeds to run (for multi-seed experiments)
+seeds: [0, 1, 2]

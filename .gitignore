@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Large training artifacts (tracked separately or on Drive)
+logs/
+checkpoints/
+
+# Results are tracked (small CSVs and plots)
+# results/  <-- intentionally NOT ignored
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/

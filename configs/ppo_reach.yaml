@@ -1,0 +1,24 @@
+# PPO (SB3) on PandaReach-v3
+
+algo:  ppo
+task:  reach
+her:   false   # PPO cannot use HER (on-policy)
+
+max_episode_steps: 50
+total_timesteps:   1_000_000
+n_envs:            4        # parallel rollout workers
+n_steps:           2048
+batch_size:        64
+n_epochs:          10
+
+learning_rate:   0.0003
+gamma:           0.99
+gae_lambda:      0.95
+clip_range:      0.2
+ent_coef:        0.0
+vf_coef:         0.5
+max_grad_norm:   0.5
+
+eval_freq:      10_000
+eval_episodes:  20
+seeds: [0, 1, 2]

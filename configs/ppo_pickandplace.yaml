@@ -1,0 +1,25 @@
+# PPO (SB3) on PandaPickAndPlace-v3
+# Expected to struggle with sparse rewards (no HER available)
+
+algo:  ppo
+task:  pickandplace
+her:   false
+
+max_episode_steps: 50
+total_timesteps:   2_000_000   # needs more steps without HER
+n_envs:            4
+n_steps:           2048
+batch_size:        64
+n_epochs:          10
+
+learning_rate:   0.0003
+gamma:           0.99
+gae_lambda:      0.95
+clip_range:      0.2
+ent_coef:        0.01          # small entropy bonus for exploration
+vf_coef:         0.5
+max_grad_norm:   0.5
+
+eval_freq:      10_000
+eval_episodes:  20
+seeds: [0, 1, 2]

@@ -1,0 +1,38 @@
+# TD3 + HER on PandaPickAndPlace-v3
+# Primary research config — sparse reward + HER
+
+algo:  td3
+task:  pickandplace
+her:   true
+
+# HER
+her_k:                   4       # Number of hindsight goals per step
+goal_selection_strategy: future  # future | episode | final | random
+
+# Environment
+max_episode_steps: 50
+
+# Training
+total_timesteps:   1_000_000
+learning_starts:   1_000
+batch_size:        256
+buffer_size:       1_000_000
+
+# TD3 hyperparameters
+actor_lr:           0.001
+critic_lr:          0.001
+gamma:              0.98
+tau:                0.005
+policy_delay:       2
+policy_noise:       0.2
+noise_clip:         0.5
+exploration_noise:  0.1
+
+# Network
+hidden_sizes: [256, 256]
+
+# Evaluation
+eval_freq:      5_000
+eval_episodes:  20
+
+seeds: [0, 1, 2]

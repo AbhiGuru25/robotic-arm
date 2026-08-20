@@ -1,0 +1,20 @@
+# DDPG (SB3 baseline) on PandaReach-v3
+
+algo:  ddpg
+task:  reach
+her:   false
+
+max_episode_steps: 50
+total_timesteps:   500_000
+learning_starts:   1_000
+batch_size:        256
+buffer_size:       1_000_000
+
+learning_rate:  0.001
+gamma:          0.98
+tau:            0.005
+action_noise:   0.1    # Gaussian noise std
+
+eval_freq:      5_000
+eval_episodes:  20
+seeds: [0, 1, 2]

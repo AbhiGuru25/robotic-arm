@@ -1,0 +1,25 @@
+# SAC (from scratch) on PandaReach-v3
+
+algo:  sac
+task:  reach
+her:   false
+
+max_episode_steps: 50
+total_timesteps:   500_000
+learning_starts:   1_000
+batch_size:        256
+buffer_size:       1_000_000
+
+actor_lr:  0.0003
+critic_lr: 0.0003
+alpha_lr:  0.0003
+gamma:     0.98
+tau:       0.005
+alpha_init: 0.2
+auto_entropy_tuning: true
+
+hidden_sizes: [256, 256]
+
+eval_freq:      5_000
+eval_episodes:  20
+seeds: [0, 1, 2]

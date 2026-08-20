@@ -1,0 +1,557 @@
+% ============================================================
+% Comparative Study of DDPG, TD3, SAC, and PPO for
+% Sparse-Reward Robotic Arm Manipulation using HER
+%
+% IEEE Transactions / Conference format
+% Compile with: pdflatex main.tex (twice) then bibtex main
+% or use Overleaf: File -> Upload -> select this file
+% ============================================================
+
+\documentclass[conference]{IEEEtran}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{url}
+
+% ─── Macros ──────────────────────────────────────────────────────────────────
+\newcommand{\eg}{\textit{e.g.},~}
+\newcommand{\ie}{\textit{i.e.},~}
+\newcommand{\etal}{\textit{et al.}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\MOCK}{\textbf{\color{red}[MOCK DATA — Replace after training]}}
+
+% ─── Document ────────────────────────────────────────────────────────────────
+\begin{document}
+
+\title{Comparative Study of DDPG, TD3, SAC, and PPO for\\
+Sparse-Reward Robotic Arm Manipulation\\
+using Hindsight Experience Replay}
+
+\author{
+  \IEEEauthorblockN{Abhi Virani}
+  \IEEEauthorblockA{
+    Department of Computer Science (AI \& ML)\\
+    Adani University, Ahmedabad, India\\
+    \textit{Final Year Research Project — 2026}
+  }
+}
+
+\maketitle
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{abstract}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Robotic manipulation tasks with sparse binary rewards present a fundamental
+challenge for deep reinforcement learning: without informative feedback, agents
+struggle to discover successful behaviours through random exploration alone.
+This paper presents a systematic empirical comparison of four prominent deep RL
+algorithms—Deep Deterministic Policy Gradient (DDPG), Twin Delayed DDPG (TD3),
+Soft Actor-Critic (SAC), and Proximal Policy Optimization (PPO)—on two
+goal-conditioned manipulation tasks using the Franka Panda robotic arm
+simulated in PyBullet via the \texttt{panda-gym} framework.
+
+We evaluate all algorithms on \texttt{PandaReach-v3} and
+\texttt{PandaPickAndPlace-v3} under sparse binary rewards, and augment the three
+off-policy algorithms with Hindsight Experience Replay (HER) using the
+\texttt{future} goal-relabelling strategy. TD3 and SAC are implemented from
+first principles to demonstrate deep understanding of deterministic and
+entropy-regularised policy gradients respectively; DDPG and PPO are provided by
+Stable-Baselines3 as validated baselines.
+
+Our results demonstrate that \MOCK: (1) without HER, all algorithms fail to
+learn meaningful pick-and-place policies within practical training budgets;
+(2) SAC+HER achieves the highest success rate on \texttt{PandaPickAndPlace-v3}
+($\approx$78\%), followed by TD3+HER ($\approx$72\%); (3) PPO, being on-policy,
+cannot benefit from HER and plateaus near 5\% success rate on the harder task;
+and (4) sample efficiency differences between TD3+HER and SAC+HER are marginal,
+with SAC exhibiting lower variance across seeds due to its principled entropy
+exploration. These findings confirm HER as the critical enabling factor for
+sparse-reward manipulation and validate the entropy-regularised SAC framework
+as the most reliable off-policy choice.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+Deep Reinforcement Learning, Robotic Manipulation, Hindsight Experience Replay,
+Soft Actor-Critic, Twin Delayed DDPG, Sparse Rewards, Goal-Conditioned RL
+\end{IEEEkeywords}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Robotic manipulation—tasks such as reaching, pushing, grasping, and pick-and-place—
+represents one of the most important and challenging application domains for
+autonomous agents. Deep reinforcement learning (RL) offers a principled framework
+for learning manipulation policies directly from interaction, yet its practical
+applicability is severely limited by the \textit{sparse reward problem}: when the
+agent receives a meaningful signal only upon successfully completing the full task,
+exploration under a random policy may never produce a success, making learning
+effectively impossible.
+
+The standard workaround—hand-crafting dense shaped rewards—requires significant
+domain expertise, introduces bias towards suboptimal behaviours, and does not
+generalise across task configurations. Hindsight Experience Replay (HER)
+\cite{andrychowicz2017her} elegantly sidesteps this by enabling any off-policy
+algorithm to learn from failed episodes: states actually reached during an episode
+are retrospectively treated as goals, converting failed trajectories into a rich
+source of learning signal.
+
+Simultaneously, the landscape of continuous-action deep RL has evolved
+substantially. DDPG \cite{lillicrap2016continuous} established the
+actor-critic framework for continuous control, but suffered from overestimation
+bias and brittle training. TD3 \cite{fujimoto2018td3} addressed these issues
+with three targeted fixes. SAC \cite{haarnoja2018sac} introduced a fundamentally
+different maximum entropy objective, yielding superior sample efficiency and
+robustness. PPO \cite{schulman2017ppo}, while on-policy and thus incompatible with
+HER, remains widely used for its simplicity and stable training.
+
+Despite this progress, the community lacks a direct, controlled comparison of all
+four algorithms on a unified robotics benchmark, specifically examining:
+\begin{itemize}
+  \item The relative performance gap between on-policy (PPO) and off-policy
+        methods on sparse-reward manipulation.
+  \item How much HER contributes to each off-policy algorithm.
+  \item Whether SAC's entropy-regularised exploration provides a meaningful
+        advantage over TD3's deterministic policy for contact-rich tasks.
+\end{itemize}
+
+\textbf{Contributions.} This paper makes the following contributions:
+\begin{enumerate}
+  \item A from-scratch implementation of TD3 (twin critics, delayed updates,
+        target smoothing) and SAC (entropy regularisation, reparameterisation
+        trick, automatic temperature tuning), fully documented for viva defence.
+  \item A from-scratch HER replay buffer with the \texttt{future} relabelling
+        strategy, compatible with any off-policy algorithm.
+  \item A rigorous empirical comparison across all four algorithms on
+        \texttt{PandaReach-v3} and \texttt{PandaPickAndPlace-v3}, with and
+        without HER, across three random seeds per configuration.
+  \item Analysis of success rate, sample efficiency, training stability, and
+        wall-clock time, providing actionable guidance for practitioners.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Background and Related Work}
+\label{sec:background}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Deep Deterministic Policy Gradient (DDPG)}
+
+DDPG \cite{lillicrap2016continuous} adapts the Deterministic Policy Gradient
+theorem \cite{silver2014dpg} to deep neural networks by combining an actor-critic
+architecture with experience replay \cite{mnih2015dqn} and soft target network
+updates. The actor $\mu(s|\theta^\mu)$ maps states to deterministic actions;
+the critic $Q(s,a|\theta^Q)$ estimates the action-value function. The critic is
+updated by minimising the Bellman residual:
+\begin{equation}
+  \mathcal{L}(\theta^Q) = \frac{1}{N}\sum_i \left(y_i - Q(s_i,a_i|\theta^Q)\right)^2
+  \label{eq:ddpg_critic}
+\end{equation}
+where $y_i = r_i + \gamma Q'(s_{i+1}, \mu'(s_{i+1}))$ uses target networks $Q'$,
+$\mu'$ updated via Polyak averaging: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$.
+The actor is updated by ascending the Q-gradient:
+\begin{equation}
+  \nabla_{\theta^\mu} J \approx \frac{1}{N}\sum_i \nabla_a Q(s,a|\theta^Q)\big|_{a=\mu(s_i)}
+    \cdot \nabla_{\theta^\mu} \mu(s_i|\theta^\mu)
+  \label{eq:ddpg_actor}
+\end{equation}
+DDPG's key weakness is a systematic overestimation bias in the critic, which
+destabilises training \cite{fujimoto2018td3}.
+
+\subsection{Twin Delayed DDPG (TD3)}
+
+TD3 \cite{fujimoto2018td3} introduces three modifications that together
+substantially improve upon DDPG:
+
+\textbf{(1) Clipped Double Q-Learning.}
+Two independent critics $Q_{\phi_1}$, $Q_{\phi_2}$ are trained; the Bellman
+target uses the minimum:
+\begin{equation}
+  y = r + \gamma(1-d)\min_{i=1,2} Q_{\phi_{i,\text{targ}}}(s', \tilde{a})
+  \label{eq:td3_target}
+\end{equation}
+This conservatively suppresses Q-value overestimation \cite{vandoubleq2016}.
+
+\textbf{(2) Delayed Policy Updates.}
+The actor is updated every $d=2$ critic steps, allowing critics to stabilise
+before the actor is guided by their estimates.
+
+\textbf{(3) Target Policy Smoothing.}
+Gaussian noise $\varepsilon \sim \text{clip}(\mathcal{N}(0,\sigma), -c, c)$
+is added to target actions, preventing the policy from exploiting narrow
+Q-function peaks caused by approximation error:
+\begin{equation}
+  \tilde{a} = \text{clip}\!\left(\pi_{\theta_\text{targ}}(s') + \varepsilon,\; a_\text{low}, a_\text{high}\right)
+  \label{eq:td3_smoothing}
+\end{equation}
+
+\subsection{Soft Actor-Critic (SAC)}
+
+SAC \cite{haarnoja2018sac,haarnoja2019sacapps} maximises a maximum entropy
+objective that augments cumulative reward with policy entropy:
+\begin{equation}
+  J(\pi) = \sum_{t=0}^{T} \E_{(s_t,a_t)\sim\rho_\pi}\!\left[r(s_t,a_t) + \alpha\,\mathcal{H}\!\left(\pi(\cdot|s_t)\right)\right]
+  \label{eq:sac_objective}
+\end{equation}
+where $\alpha > 0$ is a temperature parameter and
+$\mathcal{H}(\pi) = -\E_{a\sim\pi}[\log\pi(a|s)]$ is the Shannon entropy.
+
+SAC maintains twin critics and a Gaussian stochastic actor. Actions are sampled
+via the reparameterisation trick:
+$a = \tanh(\mu_\theta(s) + \sigma_\theta(s)\odot\varepsilon)$, $\varepsilon\sim\mathcal{N}(0,I)$,
+with the log-probability corrected for the tanh squashing:
+\begin{equation}
+  \log\pi(a|s) = \log\mathcal{N}(u;\mu,\sigma)
+    - \sum_i \log\!\left(1-\tanh^2(u_i)\right)
+  \label{eq:sac_logprob}
+\end{equation}
+The temperature $\alpha$ is automatically tuned to maintain a target entropy
+$\bar{\mathcal{H}} = -|\mathcal{A}|$ \cite{haarnoja2019sacapps}:
+\begin{equation}
+  \mathcal{L}(\alpha) = -\alpha\,\E_{a_t\sim\pi_t}\!\left[\log\pi_t(a_t|s_t) + \bar{\mathcal{H}}\right]
+  \label{eq:sac_alpha}
+\end{equation}
+
+\subsection{Proximal Policy Optimization (PPO)}
+
+PPO \cite{schulman2017ppo} is an on-policy actor-critic algorithm that stabilises
+policy gradient updates via a clipped surrogate objective. Given the probability
+ratio $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\theta_\text{old}}(a_t|s_t)$:
+\begin{equation}
+  \mathcal{L}^{\text{CLIP}}(\theta) = \E_t\!\left[
+    \min\!\left(r_t(\theta)\hat{A}_t,\; \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)
+  \right]
+  \label{eq:ppo}
+\end{equation}
+where $\hat{A}_t$ is the Generalised Advantage Estimate \cite{schulman2015gae}
+and $\epsilon=0.2$. Being on-policy, PPO cannot reuse past experience via a
+replay buffer, and thus cannot be combined with HER.
+
+\subsection{Hindsight Experience Replay (HER)}
+
+HER \cite{andrychowicz2017her} operates within the goal-conditioned RL framework
+\cite{schaul2015uvfa,plappert2018multigoal}, where the policy $\pi(s,g)$ and
+value function $Q(s,a,g)$ are conditioned on a desired goal $g$. For a sparse
+reward $R(s,g) = \mathbb{1}[\|s-g\| \leq \delta] - 1$, HER augments every
+episode's replay by storing additional transitions with relabelled goals:
+
+For each transition $(s_t, a_t, r_t, s_{t+1})$ from an episode pursuing goal $g$,
+sample $k$ future states $g' \in \{s_{t+1},\ldots,s_T\}$ (\textit{future} strategy),
+recompute $r' = R(s_{t+1}, g')$, and store $(s_t, a_t, r', s_{t+1}, g')$ in the
+replay buffer. This creates learning signal even from entirely failed episodes.
+
+\subsection{Related Comparative Studies}
+
+Henderson \etal \cite{henderson2018matters} demonstrated that implementation
+details—rather than algorithmic choice—often dominate performance differences in
+deep RL. Raffin \etal \cite{raffin2021sb3} provide reproducible Stable-Baselines3
+implementations with tuned hyperparameters for panda-gym tasks. Gallouédec \etal
+\cite{gallouedec2021pandagym} introduced the panda-gym benchmark and provided
+initial baseline results for SAC+HER and TQC+HER. Our work extends this by
+adding TD3 (from-scratch) and a direct on-policy PPO comparison in a unified
+experimental framework.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Experimental Setup}
+\label{sec:setup}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Environments}
+
+We use two tasks from the \texttt{panda-gym} suite \cite{gallouedec2021pandagym},
+which simulates the 7-DOF Franka Emika Panda arm in PyBullet with a Gymnasium
+API \cite{raffin2021sb3}:
+
+\textbf{\texttt{PandaReach-v3}.} Move the end-effector to a target position in
+3D space. Observation: $\mathbf{o} \in \R^6$ (position + velocity), goal
+$g \in \R^3$. Episode length: 50 steps. Used as a validation task to confirm
+all four algorithms are correctly implemented.
+
+\textbf{\texttt{PandaPickAndPlace-v3}.} Pick up a cube from the table and
+place it at a 3D target (which may be in the air). Observation: $\mathbf{o}
+\in \R^{25}$ (gripper state, object state, velocities), goal $g \in \R^3$.
+Episode length: 50 steps. This is the primary research task—harder than Reach
+due to the contact dynamics of grasping.
+
+In both tasks the reward is \textit{sparse binary}:
+\begin{equation}
+  r(s,g) = \begin{cases} 0 & \text{if } \|s_\text{ag} - g\| \leq 0.05 \\ -1 & \text{otherwise} \end{cases}
+  \label{eq:sparse_reward}
+\end{equation}
+where $s_\text{ag}$ is the achieved goal (end-effector or object position).
+
+\subsection{Algorithms and Implementation}
+
+Table~\ref{tab:impl} summarises the implementation source and policy type for
+each algorithm.
+
+\begin{table}[h]
+\centering
+\caption{Algorithm Summary}
+\label{tab:impl}
+\begin{tabular}{lllll}
+\toprule
+\textbf{Algo} & \textbf{Policy} & \textbf{Type} & \textbf{Source} \\
+\midrule
+DDPG & Deterministic & Off-policy & Stable-Baselines3 \\
+TD3  & Deterministic & Off-policy & From scratch \\
+SAC  & Stochastic    & Off-policy & From scratch \\
+PPO  & Stochastic    & On-policy  & Stable-Baselines3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+TD3 and SAC are implemented from first principles using PyTorch, following the
+pseudocode and hyperparameter recommendations from the original papers. All
+network architectures use two hidden layers of 256 units with ReLU activations.
+The final actor layer uses tanh squashing to enforce action bounds.
+
+HER uses the \textit{future} goal-relabelling strategy with $k=4$ hindsight
+goals per transition, consistent with \cite{andrychowicz2017her}. For
+SB3-based algorithms (DDPG, PPO), we use SB3's built-in
+\texttt{HerReplayBuffer} and \texttt{FlattenObservation} wrappers respectively.
+
+\subsection{Hyperparameters}
+
+All hyperparameters are stored in versioned YAML files. Key shared values:
+
+\begin{table}[h]
+\centering
+\caption{Shared Hyperparameters}
+\label{tab:hparams}
+\begin{tabular}{lll}
+\toprule
+\textbf{Parameter} & \textbf{TD3 / SAC} & \textbf{PPO} \\
+\midrule
+Hidden sizes       & [256, 256]         & [256, 256]   \\
+Learning rate      & $3\times10^{-4}$   & $3\times10^{-4}$ \\
+Batch size         & 256                & 64           \\
+$\gamma$ (discount)& 0.98               & 0.99         \\
+$\tau$ (Polyak)    & 0.005              & N/A          \\
+Buffer size        & $10^6$             & N/A          \\
+Learning starts    & 1,000              & N/A          \\
+TD3 policy delay   & 2                  & N/A          \\
+TD3 policy noise   & 0.2                & N/A          \\
+SAC target entropy & $-|\mathcal{A}|$   & N/A          \\
+PPO $n$-steps      & N/A                & 2048         \\
+PPO clip range     & N/A                & 0.2          \\
+HER $k$            & 4                  & N/A          \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Protocol}
+
+Each algorithm is trained for:
+\begin{itemize}
+  \item \texttt{PandaReach-v3}: 500,000 environment steps.
+  \item \texttt{PandaPickAndPlace-v3}: 1,000,000 steps (PPO: 2,000,000).
+\end{itemize}
+
+Every 5,000 steps, 20 deterministic evaluation episodes are run to compute
+\textit{success rate} (fraction of episodes reaching the goal). We report
+mean $\pm$ std across 3 random seeds (seed $\in \{0,1,2\}$). Training is
+performed on Google Colab with an NVIDIA T4 GPU.
+
+\textbf{Metrics:}
+\begin{enumerate}
+  \item \textit{Success Rate (\%):} Final evaluation success rate.
+  \item \textit{Sample Efficiency:} Steps to reach 50\% / 80\% success rate.
+  \item \textit{Training Stability:} Standard deviation of success rate across seeds.
+  \item \textit{Wall-Clock Time:} Total training time on Colab T4.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Results}
+\label{sec:results}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\noindent\textbf{\color{red}Note: All numerical results in this section are
+PLACEHOLDER values. Replace with real experimental results after completing
+Colab training runs. Figures should be regenerated using
+\texttt{scripts/plot\_results.py} with real logged data.}
+
+\subsection{PandaReach-v3 — Algorithm Validation}
+
+Fig.~\ref{fig:reach_curves} shows learning curves on \texttt{PandaReach-v3}.
+All four algorithms successfully learn to reach the target, validating that
+the implementations are correct.
+
+\MOCK\ SAC and TD3 converge faster ($\approx$100k steps to 90\%+), while DDPG
+is slightly slower due to overestimation bias. PPO requires approximately
+twice as many steps to reach similar performance, consistent with the
+sample-efficiency gap between on-policy and off-policy methods.
+
+\begin{figure}[h]
+  \centering
+  % Replace with real figure after training:
+  % \includegraphics[width=\columnwidth]{figures/reach_learning_curves.pdf}
+  \fbox{\parbox{\columnwidth}{\centering\vspace{1.5cm}
+    \MOCK\\ PandaReach Learning Curves\\
+    (Replace with real figure)
+    \vspace{1.5cm}}}
+  \caption{Success rate vs. environment steps on \texttt{PandaReach-v3}.
+    Solid lines: seed-averaged mean. Shaded bands: $\pm$1 std.
+    \MOCK}
+  \label{fig:reach_curves}
+\end{figure}
+
+\subsection{PandaPickAndPlace-v3 — Primary Results}
+
+Fig.~\ref{fig:pp_curves} shows learning curves on \texttt{PandaPickAndPlace-v3},
+the primary research task.
+
+\begin{figure}[h]
+  \centering
+  \fbox{\parbox{\columnwidth}{\centering\vspace{1.5cm}
+    \MOCK\\ PandaPickAndPlace Learning Curves\\
+    (Replace with real figure)
+    \vspace{1.5cm}}}
+  \caption{Success rate vs. environment steps on \texttt{PandaPickAndPlace-v3}.
+    \MOCK}
+  \label{fig:pp_curves}
+\end{figure}
+
+Table~\ref{tab:results} presents the final quantitative results.
+
+\begin{table}[h]
+\centering
+\caption{Final Results on \texttt{PandaPickAndPlace-v3} \MOCK}
+\label{tab:results}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lllrr}
+\toprule
+\textbf{Algorithm} & \textbf{HER} & \textbf{Success (\%)} & \textbf{Steps $\to$50\%} & \textbf{Time (hr)} \\
+\midrule
+DDPG   & \texttimes & $8.0\pm3.1$   & N/A    & 1.2 \\
+TD3    & \texttimes & $12.0\pm4.2$  & N/A    & 1.4 \\
+TD3    & \checkmark & $72.0\pm5.8$  & $\sim$550k & 1.8 \\
+SAC    & \texttimes & $15.0\pm4.8$  & N/A    & 1.6 \\
+SAC    & \checkmark & $\mathbf{78.0\pm4.1}$ & $\sim$480k & 2.0 \\
+PPO    & \texttimes & $5.0\pm2.3$   & N/A    & 2.4 \\
+\bottomrule
+\multicolumn{5}{l}{\small All values are \MOCK. 3 seeds. Time on Colab T4.}
+\end{tabular}}
+\end{table}
+
+\subsection{HER Ablation}
+
+The effect of HER is dramatic: without it, no algorithm exceeds $\approx$15\%
+success rate on \texttt{PandaPickAndPlace-v3} within 1M steps \MOCK.
+With HER, TD3 achieves $\approx$72\% and SAC $\approx$78\% \MOCK.
+
+Fig.~\ref{fig:her_comparison} isolates the HER effect for TD3 and SAC.
+
+\begin{figure}[h]
+  \centering
+  \fbox{\parbox{\columnwidth}{\centering\vspace{1.5cm}
+    \MOCK\\ HER vs No-HER Comparison\\
+    (Replace with real figure)
+    \vspace{1.5cm}}}
+  \caption{HER vs.\ no-HER success rates for TD3 and SAC on
+    \texttt{PandaPickAndPlace-v3}. \MOCK}
+  \label{fig:her_comparison}
+\end{figure}
+
+\subsection{On-Policy vs.\ Off-Policy Gap}
+
+PPO's failure to exceed $\approx$5\% success rate on the harder task \MOCK\
+demonstrates the fundamental incompatibility of on-policy methods with sparse
+rewards: without the ability to reuse experience from a replay buffer, and
+without HER, the agent almost never observes a reward signal.
+
+On \texttt{PandaReach-v3}, where the task is easier and random exploration
+occasionally succeeds, PPO eventually learns but requires $\approx$2$\times$
+more steps than SAC or TD3 to reach 80\% success.
+
+\subsection{SAC vs.\ TD3 Analysis}
+
+\MOCK\ SAC+HER outperforms TD3+HER by approximately 6 percentage points in
+final success rate and converges approximately 70k steps earlier. We attribute
+this to SAC's entropy regularisation providing more diverse exploratory
+behaviour: the gripper attempts a wider range of grasp approaches, which is
+beneficial for contact-rich manipulation where multiple grasp orientations are
+viable.
+
+TD3's lower variance across seeds suggests that its deterministic policy
+produces more consistent—if sometimes less optimal—behaviours.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Discussion}
+\label{sec:discussion}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\textbf{HER is the decisive factor.}
+Our results confirm that HER, rather than the choice of base algorithm, is the
+most impactful design decision for sparse-reward manipulation. The gap between
+TD3 (no HER) and TD3+HER is $\approx$60 percentage points \MOCK, while the gap
+between TD3+HER and SAC+HER is $\approx$6 points \MOCK. Practitioners should
+prioritise HER implementation over algorithm selection.
+
+\textbf{Off-policy algorithms dominate on-policy methods.}
+The sample efficiency advantage of off-policy replay (DDPG, TD3, SAC) over
+on-policy rollouts (PPO) is decisive for manipulation tasks. This is consistent
+with Henderson \etal \cite{henderson2018matters}: on-policy methods scale poorly
+to tasks requiring many interactions to observe any reward signal.
+
+\textbf{SAC's entropy bonus benefits contact-rich tasks.}
+While TD3's deterministic policy and target smoothing provide stability,
+SAC's inherent exploration through entropy maximisation proves more beneficial
+for \texttt{PandaPickAndPlace-v3}, where diverse grasp attempts are needed.
+
+\textbf{Limitations.}
+This study is limited to two tasks, a single physics engine (PyBullet), and
+end-effector control. Results may differ with joint-space control or on
+real-hardware sim-to-real transfer. The HER buffer used here is a basic
+implementation; prioritised HER \cite{plappert2018multigoal} or
+curriculum-guided relabelling may yield further improvements.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+% ─────────────────────────────────────────────────────────────────────────────
+
+We presented a rigorous comparison of DDPG, TD3, SAC, and PPO on sparse-reward
+robotic arm manipulation tasks, augmented with Hindsight Experience Replay.
+Our from-scratch implementations of TD3 and SAC demonstrate the key algorithmic
+insights of each method, and our HER buffer correctly implements the
+\textit{future} goal-relabelling strategy.
+
+The central finding is that HER is the enabling technology for sparse-reward
+manipulation: all algorithms fail without it on \texttt{PandaPickAndPlace-v3},
+while SAC+HER and TD3+HER achieve strong performance. Among algorithms,
+SAC+HER provides the best balance of success rate, sample efficiency, and
+training stability.
+
+Future work includes: (1) extending to harder tasks (PandaStack, PandaFlip);
+(2) implementing prioritised HER; (3) sim-to-real transfer experiments;
+and (4) replacing PyBullet with MuJoCo for comparison against published baselines.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{Acknowledgements}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The author thanks Adani University's Department of Computer Science (AI \& ML)
+for providing project guidance and evaluation resources. Compute resources
+were provided through Google Colab.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\end{document}

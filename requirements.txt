@@ -1,0 +1,40 @@
+# ============================================================
+# requirements.txt  -  Robotic Arm RL Project
+# Primary target: Google Colab (free/Pro GPU)
+# Also works locally on Python 3.9+
+# Install: pip install -r requirements.txt
+# ============================================================
+
+# Core RL and simulation
+gymnasium>=0.29.0
+panda-gym>=3.0.6
+pybullet>=3.2.5
+
+# Deep learning backend
+torch>=2.0.0
+torchvision>=0.15.0
+
+# SB3 library baselines (DDPG, PPO)
+stable-baselines3>=2.1.0
+
+# Experiment tracking
+tensorboard>=2.13.0
+
+# Config management
+pyyaml>=6.0
+
+# Numerics
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pandas>=2.0.0
+
+# Video recording
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+
+# Progress bars
+tqdm>=4.65.0
