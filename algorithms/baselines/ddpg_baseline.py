@@ -89,8 +89,8 @@ class DDPGBaseline:
         self._env_id        = TASK_MAP[task]
 
         # ── Build environments ─────────────────────────────────────────
-        self._env      = Monitor(gym.make(self._env_id, render_mode=None))
-        self._eval_env = Monitor(gym.make(self._env_id, render_mode=None))
+        self._env      = Monitor(gym.make(self._env_id))
+        self._eval_env = Monitor(gym.make(self._env_id))
 
         # ── Action noise (Gaussian for DDPG) ──────────────────────────
         n_actions    = self._env.action_space.shape[0]

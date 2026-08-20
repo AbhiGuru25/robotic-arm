@@ -27,7 +27,7 @@ Usage
     import panda_gym
     from envs.wrappers import FlattenGoalObsWrapper, TimeLimitWrapper
 
-    env = gym.make("PandaReach-v3", render_mode=None)
+    env = gym.make("PandaReach-v3")
     env = FlattenGoalObsWrapper(env)
     env = TimeLimitWrapper(env, max_steps=50)
 """
@@ -194,7 +194,7 @@ def make_env(task: str,
         f"Unknown task '{task}'. Choose from: {list(task_map.keys())}"
     )
 
-    env = gym.make(task_map[task], render_mode=render_mode)
+    env = gym.make(task_map[task], render_mode=render_mode) if render_mode else gym.make(task_map[task])
     env = TimeLimitWrapper(env, max_steps=max_steps)
     if flatten:
         env = FlattenGoalObsWrapper(env)

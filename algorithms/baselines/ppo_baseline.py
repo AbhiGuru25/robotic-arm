@@ -83,14 +83,14 @@ class PPOBaseline:
         from gymnasium.wrappers import FlattenObservation
 
         def make_single_env():
-            env = gym.make(self._env_id, render_mode=None)
+            env = gym.make(self._env_id)
             env = FlattenObservation(env)
             env = Monitor(env)
             return env
 
         # Vectorised envs for parallel rollout collection
         self._env = DummyVecEnv([make_single_env for _ in range(n_envs)])
-        self._eval_env = Monitor(FlattenObservation(gym.make(self._env_id, render_mode=None)))
+        self._eval_env = Monitor(FlattenObservation(gym.make(self._env_id)))
 
         run_tag = f"ppo_{task}_seed{seed}"
         self._run_tag = run_tag

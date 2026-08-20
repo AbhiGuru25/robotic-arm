@@ -78,7 +78,7 @@ def check_gym_envs():
     tasks = ["PandaReach-v3", "PandaPickAndPlace-v3"]
     for env_id in tasks:
         try:
-            env = gym.make(env_id, render_mode=None)
+            env = gym.make(env_id)
             obs, _ = env.reset(seed=0)
             for _ in range(5):
                 action = env.action_space.sample()
