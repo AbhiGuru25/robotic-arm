@@ -205,8 +205,8 @@ class HERBuffer:
             if self.strategy == "future":
                 # Sample k indices uniformly from [t+1, T)
                 future_indices = np.random.randint(
-                    t + 1, T + 1,
-                    size=min(self.k, T - t)
+                    t + 1, T,
+                    size=min(self.k, T - 1 - t)
                 ) if t < T - 1 else []
             elif self.strategy == "episode":
                 future_indices = np.random.randint(0, T, size=self.k)
@@ -214,6 +214,7 @@ class HERBuffer:
                 future_indices = [T - 1] * self.k
 
             for f_idx in future_indices:
+                f_idx = min(int(f_idx), T - 1)
                 # Hindsight goal = achieved goal at the future step
                 her_goal = next_ags[f_idx]                            # (ag_dim,)
 
