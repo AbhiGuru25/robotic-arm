@@ -364,15 +364,18 @@ def train_td3(args, cfg: dict, device: str) -> None:
 # Evaluation helper
 # ─────────────────────────────────────────────────────────────────────────────
 
-def evaluate_td3(agent, eval_env, n_episodes: int = 20):
-    """Run deterministic evaluation episodes, return success_rate + mean_reward."""
+def evaluate_agent(agent, eval_env, n_episodes: int = 20):
+    """Run deterministic evaluation episodes for TD3 or SAC, return success_rate + mean_reward."""
     successes = []
     rewards   = []
     for _ in range(n_episodes):
         obs, _ = eval_env.reset()
         ep_reward = 0.0
         for _ in range(200):
-            action = agent.select_action(obs, add_noise=False)
+            try:
+                action = agent.select_action(obs, deterministic=True)
+            except TypeError:
+                action = agent.select_action(obs, add_noise=False)
             obs, reward, terminated, truncated, info = eval_env.step(action)
             ep_reward += reward
             if terminated or truncated:
@@ -380,6 +383,8 @@ def evaluate_td3(agent, eval_env, n_episodes: int = 20):
                 break
         rewards.append(ep_reward)
     return float(np.mean(successes)), float(np.mean(rewards))
+
+evaluate_td3 = evaluate_agent
 
 
 # ─────────────────────────────────────────────────────────────────────────────
