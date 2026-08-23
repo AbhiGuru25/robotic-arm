@@ -104,6 +104,10 @@ def parse_args():
         "--eval_episodes", type=int, default=20,
         help="Number of evaluation episodes per eval."
     )
+    p.add_argument(
+        "--resume", action="store_true", default=False,
+        help="Resume training from the latest checkpoint in checkpoint_dir if available."
+    )
     return p.parse_args()
 
 
@@ -145,6 +149,31 @@ def get_device(args) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # Seed utilities
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def find_resume_checkpoint(ckpt_dir: pathlib.Path):
+    """Find the latest checkpoint (step_X.pt or best.pt) in ckpt_dir to resume training."""
+    if not ckpt_dir.exists():
+        return None, 0
+
+    step_files = list(ckpt_dir.glob("step_*.pt"))
+    if step_files:
+        steps_and_files = []
+        for f in step_files:
+            try:
+                s = int(f.stem.split("_")[1])
+                steps_and_files.append((s, f))
+            except ValueError:
+                pass
+        if steps_and_files:
+            steps_and_files.sort(key=lambda x: x[0], reverse=True)
+            return steps_and_files[0][1], steps_and_files[0][0]
+
+    best_file = ckpt_dir / "best.pt"
+    if best_file.exists():
+        return best_file, 0
+
+    return None, 0
 
 def set_seeds(seed: int) -> None:
     np.random.seed(seed)
@@ -243,6 +272,14 @@ def train_td3(args, cfg: dict, device: str) -> None:
     ckpt_dir = pathlib.Path(args.checkpoint_dir) / run_tag
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+    start_step = 0
+    if args.resume:
+        ckpt_path, start_step = find_resume_checkpoint(ckpt_dir)
+        if ckpt_path:
+            print(f"[resume] Resuming TD3 training from {ckpt_path.name} (step {start_step})")
+            agent.load(str(ckpt_path))
+            start_steps = 0  # Skip initial exploration
+
     best_success = -1.0
 
     # ── Main training loop ────────────────────────────────────────────
@@ -251,10 +288,10 @@ def train_td3(args, cfg: dict, device: str) -> None:
     episode_step = 0
 
     print(f"[train] Starting TD3 training: {run_tag}, "
-          f"total_steps={total_steps}, device={device}")
+          f"start_step={start_step}, total_steps={total_steps}, device={device}")
 
     from tqdm import tqdm
-    for step in tqdm(range(1, total_steps + 1), desc=run_tag):
+    for step in tqdm(range(start_step + 1, total_steps + 1), desc=run_tag):
 
         # ── Select action ─────────────────────────────────────────────
         if step < start_steps:
@@ -452,16 +489,24 @@ def train_sac(args, cfg: dict, device: str) -> None:
     ckpt_dir = pathlib.Path(args.checkpoint_dir) / run_tag
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+    start_step = 0
+    if args.resume:
+        ckpt_path, start_step = find_resume_checkpoint(ckpt_dir)
+        if ckpt_path:
+            print(f"[resume] Resuming SAC training from {ckpt_path.name} (step {start_step})")
+            agent.load(str(ckpt_path))
+            start_steps = 0
+
     best_success = -1.0
 
     obs, _ = env.reset(seed=args.seed)
     episode_step = 0
 
     print(f"[train] Starting SAC training: {run_tag}, "
-          f"total_steps={total_steps}, device={device}")
+          f"start_step={start_step}, total_steps={total_steps}, device={device}")
 
     from tqdm import tqdm
-    for step in tqdm(range(1, total_steps + 1), desc=run_tag):
+    for step in tqdm(range(start_step + 1, total_steps + 1), desc=run_tag):
 
         if step < start_steps:
             action = env.action_space.sample()
