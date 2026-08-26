@@ -61,9 +61,22 @@ def main():
     vid_path = vid_dir / f"{run_tag}.mp4"
 
     # ── Load agent ────────────────────────────────────────────────────
-    ckpt = args.checkpoint or str(
-        ROOT / "checkpoints" / run_tag / "best.pt"
-    )
+    ckpt_dir = ROOT / "checkpoints" / run_tag
+    candidates = [
+        args.checkpoint,
+        str(ckpt_dir / "best.pt"),
+        str(ckpt_dir / "best_model.zip"),
+        str(ckpt_dir / "final.pt"),
+        str(ckpt_dir / "final.zip"),
+        str(ckpt_dir / "best" / "best_model.zip"),
+    ]
+    ckpt = None
+    for cand in candidates:
+        if cand and pathlib.Path(cand).exists():
+            ckpt = cand
+            break
+    if ckpt is None:
+        ckpt = str(ckpt_dir / "best.pt")
     if args.algo == "td3":
         from algorithms.scratch.td3 import TD3
         obs_dim    = env.observation_space.shape[0]

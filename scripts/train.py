@@ -105,6 +105,10 @@ def parse_args():
         help="Number of evaluation episodes per eval."
     )
     p.add_argument(
+        "--sb3", action="store_true", default=False,
+        help="Use Stable-Baselines3 implementation with official HerReplayBuffer."
+    )
+    p.add_argument(
         "--resume", action="store_true", default=False,
         help="Resume training from the latest checkpoint in checkpoint_dir if available."
     )
@@ -585,13 +589,25 @@ def main():
           f"her={args.her}  seed={args.seed}  device={device}")
 
     if args.algo == "td3":
-        train_td3(args, cfg, device)
+        if args.sb3:
+            from algorithms.baselines.ddpg_baseline import DDPGBaseline
+            total_steps = args.steps or cfg.get("total_timesteps", 1_000_000)
+            agent = DDPGBaseline(task=args.task, seed=args.seed, her=args.her, log_dir=args.log_dir, checkpoint_dir=args.checkpoint_dir)
+            agent.train(total_timesteps=total_steps, eval_freq=args.eval_freq)
+        else:
+            train_td3(args, cfg, device)
     elif args.algo == "ddpg":
         train_ddpg(args, cfg)
     elif args.algo == "ppo":
         train_ppo(args, cfg)
     elif args.algo == "sac":
-        train_sac(args, cfg, device)
+        if args.sb3:
+            from algorithms.baselines.sac_baseline import SACBaseline
+            total_steps = args.steps or cfg.get("total_timesteps", 1_000_000)
+            agent = SACBaseline(task=args.task, seed=args.seed, her=args.her, log_dir=args.log_dir, checkpoint_dir=args.checkpoint_dir)
+            agent.train(total_timesteps=total_steps, eval_freq=args.eval_freq)
+        else:
+            train_sac(args, cfg, device)
 
 
 if __name__ == "__main__":

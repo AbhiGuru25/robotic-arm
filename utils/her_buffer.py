@@ -225,7 +225,7 @@ class HERBuffer:
                 next_obs_relabelled[self._dg_start:] = her_goal
 
                 # Recompute sparse reward with hindsight goal
-                her_reward = self._compute_reward(next_ags[t], her_goal)
+                her_reward = self._compute_reward(next_ags[t], her_goal, start_ag=next_ags[t])
 
                 self._buffer.add(
                     obs_relabelled,
@@ -257,14 +257,20 @@ class HERBuffer:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> float:
+    def _compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, start_ag: np.ndarray = None) -> float:
         """Sparse binary reward.
 
-        Returns 0.0 (success) if ||ag - dg|| <= threshold, else -1.0.
-        Matches panda-gym's internal reward function.
+        Returns 0.0 (success) if ||ag - dg|| <= threshold and object was actually moved, else -1.0.
+        Avoids rewarding trivial stationary goals where the robot never touches the object.
         """
         distance = np.linalg.norm(achieved_goal - desired_goal)
-        return 0.0 if distance <= self.goal_threshold else -1.0
+        if distance <= self.goal_threshold:
+            if start_ag is not None:
+                # Require that the object moved at least 1 cm from step t
+                if np.linalg.norm(achieved_goal - start_ag) < 0.01:
+                    return -1.0
+            return 0.0
+        return -1.0
 
     def __repr__(self) -> str:
         return (
