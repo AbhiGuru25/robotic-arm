@@ -24,6 +24,8 @@ DenseRewardWrapper
 Usage
 -----
     import gymnasium as gym
+import panda_gym  # noqa: F401
+
     import panda_gym
     from envs.wrappers import FlattenGoalObsWrapper, TimeLimitWrapper
 
@@ -34,6 +36,8 @@ Usage
 
 import numpy as np
 import gymnasium as gym
+import panda_gym  # noqa: F401
+
 from gymnasium import spaces
 from typing import Any, Dict, Optional, Tuple
 
