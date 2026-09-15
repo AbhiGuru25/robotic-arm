@@ -603,8 +603,23 @@ def main():
     elif args.algo == "sac":
         if args.sb3:
             from algorithms.baselines.sac_baseline import SACBaseline
+            from stable_baselines3 import SAC
             total_steps = args.steps or cfg.get("total_timesteps", 1_000_000)
             agent = SACBaseline(task=args.task, seed=args.seed, her=args.her, log_dir=args.log_dir, checkpoint_dir=args.checkpoint_dir)
+            if args.resume:
+                ckpt_dir = pathlib.Path(args.checkpoint_dir) / f"sac{'_her' if args.her else ''}_{args.task}_seed{args.seed}"
+                zip_files = list(ckpt_dir.glob("step_*.zip"))
+                if zip_files:
+                    def get_step(f):
+                        parts = f.stem.split("_")
+                        return int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+                    zip_files.sort(key=get_step, reverse=True)
+                    latest_zip = zip_files[0]
+                    print(f"[resume] Loading SB3 SAC checkpoint: {latest_zip.name}")
+                    agent.model = SAC.load(str(latest_zip), env=agent._env)
+                elif (ckpt_dir / "best_model.zip").exists():
+                    print(f"[resume] Loading SB3 SAC checkpoint: best_model.zip")
+                    agent.model = SAC.load(str(ckpt_dir / "best_model.zip"), env=agent._env)
             agent.train(total_timesteps=total_steps, eval_freq=args.eval_freq)
         else:
             train_sac(args, cfg, device)
