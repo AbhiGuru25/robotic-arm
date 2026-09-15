@@ -617,9 +617,11 @@ def main():
                     latest_zip = zip_files[0]
                     print(f"[resume] Loading SB3 SAC checkpoint: {latest_zip.name}")
                     agent.model = SAC.load(str(latest_zip), env=agent._env)
+                    agent.model.learning_starts = agent.model.num_timesteps + 100
                 elif (ckpt_dir / "best_model.zip").exists():
                     print(f"[resume] Loading SB3 SAC checkpoint: best_model.zip")
                     agent.model = SAC.load(str(ckpt_dir / "best_model.zip"), env=agent._env)
+                    agent.model.learning_starts = agent.model.num_timesteps + 100
             agent.train(total_timesteps=total_steps, eval_freq=args.eval_freq)
         else:
             train_sac(args, cfg, device)
