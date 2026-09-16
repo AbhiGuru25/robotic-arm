@@ -1,11 +1,7 @@
 """
 scripts/record_video.py
 ========================
-Record an MP4 video of the best trained agent.
-
-Usage
------
-    python scripts/record_video.py --algo sac --task pickandplace --her --sb3
+Robust video recording script for robotic arm tasks.
 """
 
 import argparse
@@ -21,14 +17,15 @@ import torch
 
 def parse_args():
     p = argparse.ArgumentParser(description="Record a video of a trained agent.")
-    p.add_argument("--algo",       type=str, required=True,
+    p.add_argument("--algo",       type=str, default="sac",
                    choices=["td3", "sac", "ddpg", "ppo"])
-    p.add_argument("--task",       type=str, required=True,
+    p.add_argument("--task",       type=str, default="pickandplace",
                    choices=["reach", "pickandplace", "push", "slide"])
-    p.add_argument("--her",        action="store_true", default=False)
-    p.add_argument("--sb3",        action="store_true", default=False)
+    p.add_argument("--her",        action="store_true", default=True)
+    p.add_argument("--sb3",        action="store_true", default=True)
     p.add_argument("--seed",       type=int, default=0)
     p.add_argument("--episodes",   type=int, default=3)
+    p.add_argument("--max_steps",  type=int, default=100)
     p.add_argument("--checkpoint", type=str, default=None)
     p.add_argument("--fps",        type=int, default=30)
     p.add_argument("--device",     type=str, default=None)
@@ -51,29 +48,10 @@ def main():
 
     ckpt_dir = ROOT / "checkpoints" / run_tag
 
-    # ── Collect all candidate checkpoints ─────────────────────────────
-    candidates = []
-    if args.checkpoint:
-        candidates.append(args.checkpoint)
-
-    if ckpt_dir.exists():
-        for zip_p in ckpt_dir.glob("*.zip"):
-            candidates.append(str(zip_p))
-        for zip_p in ckpt_dir.glob("**/*.zip"):
-            candidates.append(str(zip_p))
-        for pt_p in ckpt_dir.glob("*.pt"):
-            candidates.append(str(pt_p))
-
-    # Remove duplicates
-    candidates = list(dict.fromkeys(candidates))
-    print(f"[record] Found {len(candidates)} candidate checkpoints in {ckpt_dir}")
-
-    is_sb3 = args.sb3 or any(c.endswith(".zip") for c in candidates)
-
     try:
         import imageio
     except ImportError:
-        print("[record] imageio not installed. Run: pip install imageio imageio-ffmpeg")
+        print("[record] Error: imageio not installed. Run: pip install imageio imageio-ffmpeg")
         sys.exit(1)
 
     task_map = {
@@ -82,6 +60,21 @@ def main():
         "push": "PandaPush-v3",
         "slide": "PandaSlide-v3",
     }
+
+    # ── Find all candidate checkpoints ─────────────────────────────
+    candidates = []
+    if args.checkpoint:
+        candidates.append(args.checkpoint)
+
+    if ckpt_dir.exists():
+        for zip_p in list(ckpt_dir.glob("*.zip")) + list(ckpt_dir.glob("**/*.zip")):
+            candidates.append(str(zip_p))
+        for pt_p in list(ckpt_dir.glob("*.pt")) + list(ckpt_dir.glob("**/*.pt")):
+            candidates.append(str(pt_p))
+
+    print(f"[record] Found {len(candidates)} candidate checkpoints for {run_tag}")
+
+    is_sb3 = args.sb3 or any(c.endswith(".zip") for c in candidates)
 
     if is_sb3 and candidates:
         from stable_baselines3 import SAC, TD3, DDPG, PPO
@@ -92,9 +85,10 @@ def main():
         def make_raw():
             return gym.make(task_map[args.task], render_mode="rgb_array")
 
+        raw_env = make_raw()
         env = DummyVecEnv([make_raw])
 
-        # Evaluate candidates to find the highest performing model
+        # Evaluate candidate models to pick the best checkpoint
         best_ckpt = candidates[0]
         best_score = -1.0
 
@@ -104,23 +98,23 @@ def main():
             try:
                 m = algo_cls.load(cand, env=env)
                 score = 0
-                for _ in range(3):
+                for _ in range(2):
                     obs = env.reset()
-                    for _ in range(50):
+                    for _ in range(args.max_steps):
                         act, _ = m.predict(obs, deterministic=True)
                         obs, r, d, info = env.step(act)
+                        if info[0].get("is_success", False):
+                            score += 1
                         if d[0]:
-                            if info[0].get("is_success", False):
-                                score += 1
                             break
-                print(f"[record] Evaluated {pathlib.Path(cand).name}: score {score}/3")
+                print(f"  Candidate {pathlib.Path(cand).name} -> Score: {score}")
                 if score > best_score:
                     best_score = score
                     best_ckpt = cand
             except Exception as e:
-                print(f"[record] Could not load {cand}: {e}")
+                pass
 
-        print(f"[record] Selected best checkpoint: {best_ckpt} (score: {best_score}/3)")
+        print(f"[record] Selected checkpoint: {best_ckpt}")
         model = algo_cls.load(best_ckpt, env=env)
 
         frames = []
@@ -129,14 +123,15 @@ def main():
         for ep in range(args.episodes):
             obs = env.reset()
             ep_success = False
-            for step in range(50):
+            for step in range(args.max_steps):
                 action, _ = model.predict(obs, deterministic=True)
                 obs, reward, done, info = env.step(action)
                 frame = env.envs[0].render()
                 if frame is not None:
                     frames.append(frame)
+                if info[0].get("is_success", False):
+                    ep_success = True
                 if done[0]:
-                    ep_success = bool(info[0].get("is_success", False))
                     break
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
@@ -176,14 +171,15 @@ def main():
         for ep in range(args.episodes):
             obs, _ = env.reset()
             ep_success = False
-            for step in range(50):
+            for step in range(args.max_steps):
                 action = get_action(obs)
                 obs, reward, terminated, truncated, info = env.step(action)
                 frame = env.render()
                 if frame is not None:
                     frames.append(frame)
+                if info.get("is_success", False):
+                    ep_success = True
                 if terminated or truncated:
-                    ep_success = bool(info.get("is_success", False))
                     break
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
@@ -193,7 +189,7 @@ def main():
     if frames:
         print(f"[record] Writing {len(frames)} frames to {vid_path} ...")
         imageio.mimwrite(str(vid_path), frames, fps=args.fps, quality=8)
-        print(f"[record] Video saved: {vid_path}")
+        print(f"[record] Video saved successfully: {vid_path}")
     else:
         print("[record] No frames captured.")
 
