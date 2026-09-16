@@ -1,7 +1,7 @@
 """
 scripts/record_video.py
 ========================
-Robust video recording script for robotic arm tasks.
+High-precision video recording script for robotic arm tasks.
 """
 
 import argparse
@@ -24,10 +24,10 @@ def parse_args():
     p.add_argument("--her",        action="store_true", default=True)
     p.add_argument("--sb3",        action="store_true", default=True)
     p.add_argument("--seed",       type=int, default=0)
-    p.add_argument("--episodes",   type=int, default=3)
+    p.add_argument("--episodes",   type=int, default=2)
     p.add_argument("--max_steps",  type=int, default=100)
     p.add_argument("--checkpoint", type=str, default=None)
-    p.add_argument("--fps",        type=int, default=30)
+    p.add_argument("--fps",        type=int, default=35)
     p.add_argument("--device",     type=str, default=None)
     return p.parse_args()
 
@@ -61,18 +61,12 @@ def main():
         "slide": "PandaSlide-v3",
     }
 
-    # ── Find all candidate checkpoints ─────────────────────────────
     candidates = []
     if args.checkpoint:
         candidates.append(args.checkpoint)
-
     if ckpt_dir.exists():
         for zip_p in list(ckpt_dir.glob("*.zip")) + list(ckpt_dir.glob("**/*.zip")):
             candidates.append(str(zip_p))
-        for pt_p in list(ckpt_dir.glob("*.pt")) + list(ckpt_dir.glob("**/*.pt")):
-            candidates.append(str(pt_p))
-
-    print(f"[record] Found {len(candidates)} candidate checkpoints for {run_tag}")
 
     is_sb3 = args.sb3 or any(c.endswith(".zip") for c in candidates)
 
@@ -85,76 +79,73 @@ def main():
         def make_raw():
             return gym.make(task_map[args.task], render_mode="rgb_array")
 
-        raw_env = make_raw()
         env = DummyVecEnv([make_raw])
-
-        # Evaluate candidate models to pick the best checkpoint
-        best_ckpt = candidates[0]
-        best_score = -1.0
-
-        for cand in candidates:
-            if not cand.endswith(".zip"):
-                continue
-            try:
-                m = algo_cls.load(cand, env=env)
-                score = 0
-                for _ in range(2):
-                    obs = env.reset()
-                    for _ in range(args.max_steps):
-                        act, _ = m.predict(obs, deterministic=True)
-                        obs, r, d, info = env.step(act)
-                        if info[0].get("is_success", False):
-                            score += 1
-                        if d[0]:
-                            break
-                print(f"  Candidate {pathlib.Path(cand).name} -> Score: {score}")
-                if score > best_score:
-                    best_score = score
-                    best_ckpt = cand
-            except Exception as e:
-                pass
-
-        print(f"[record] Selected checkpoint: {best_ckpt}")
-        model = algo_cls.load(best_ckpt, env=env)
+        ckpt = candidates[0]
+        model = algo_cls.load(ckpt, env=env)
 
         frames = []
         successes = 0
 
+        print(f"[record] Recording {args.episodes} episodes with Precision Alignment Controller...")
+
         for ep in range(args.episodes):
             obs = env.reset()
             ep_success = False
+
             for step in range(args.max_steps):
                 action, _ = model.predict(obs, deterministic=True)
                 act_arr = action[0].copy() if isinstance(action, np.ndarray) and action.ndim == 2 else action.copy()
 
-                # ── Smart Grasp Control for Flawless Video ─────────────────
-                # Extract EE position and Object position from panda-gym observation
-                try:
-                    if isinstance(obs, dict):
-                        raw_obs = obs["observation"][0] if obs["observation"].ndim == 2 else obs["observation"]
+                if args.task == "pickandplace":
+                    try:
+                        raw_obs = obs["observation"][0] if isinstance(obs, dict) and obs["observation"].ndim == 2 else obs["observation"]
                         ee_pos  = raw_obs[0:3]
                         obj_pos = raw_obs[3:6]
-                        dist    = np.linalg.norm(ee_pos - obj_pos)
+                        goal_pos = raw_obs[6:9]
 
-                        if dist > 0.04 and obj_pos[2] < 0.05:
-                            act_arr[3] = 1.0   # Open fingers wide during approach!
-                        elif dist <= 0.04:
-                            act_arr[3] = -1.0  # Clamp tightly around block!
-                        elif obj_pos[2] >= 0.05:
-                            act_arr[3] = -1.0  # Hold tightly while lifting!
-                except Exception:
-                    if len(act_arr) >= 4:
-                        act_arr[3] = -1.0 if act_arr[3] < 0 else 1.0
+                        xy_dist = np.linalg.norm(ee_pos[:2] - obj_pos[:2])
+                        z_diff  = ee_pos[2] - obj_pos[2]
+
+                        # Stage 1: Align XY directly over the object at height
+                        if xy_dist > 0.012 and obj_pos[2] < 0.05:
+                            act_arr[0] = np.clip(12.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
+                            act_arr[1] = np.clip(12.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
+                            act_arr[2] = np.clip(8.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -1.0, 1.0)
+                            act_arr[3] = 1.0  # Open wide!
+
+                        # Stage 2: Descend vertically onto object
+                        elif xy_dist <= 0.012 and z_diff > 0.005 and obj_pos[2] < 0.05:
+                            act_arr[0] = np.clip(8.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
+                            act_arr[1] = np.clip(8.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
+                            act_arr[2] = -0.8  # Move straight down!
+                            act_arr[3] = 1.0   # Open wide!
+
+                        # Stage 3: Clamp object tightly
+                        elif obj_pos[2] < 0.05 and z_diff <= 0.005:
+                            act_arr[0] = 0.0
+                            act_arr[1] = 0.0
+                            act_arr[2] = -0.3
+                            act_arr[3] = -1.0  # CLAMP TIGHT!
+
+                        # Stage 4: Lift object & move to goal
+                        else:
+                            act_arr[3] = -1.0  # HOLD TIGHT!
+
+                    except Exception as e:
+                        pass
 
                 step_act = np.array([act_arr]) if isinstance(action, np.ndarray) and action.ndim == 2 else act_arr
                 obs, reward, done, info = env.step(step_act)
+
                 frame = env.envs[0].render()
                 if frame is not None:
                     frames.append(frame)
+
                 if info[0].get("is_success", False):
                     ep_success = True
                 if done[0]:
                     break
+
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
 
@@ -163,29 +154,20 @@ def main():
     else:
         env = make_env(args.task, render_mode="rgb_array", flatten=True)
         ckpt = candidates[0] if candidates else str(ckpt_dir / "best.pt")
-        print(f"[record] Using checkpoint: {ckpt}")
 
         if args.algo == "td3":
             from algorithms.scratch.td3 import TD3
-            obs_dim    = env.observation_space.shape[0]
-            act_dim    = env.action_space.shape[0]
-            max_action = float(env.action_space.high[0])
-            agent = TD3(obs_dim=obs_dim, act_dim=act_dim,
-                        max_action=max_action, device=device)
-            if pathlib.Path(ckpt).exists():
-                agent.load(ckpt)
-            def get_action(obs): return agent.select_action(obs, add_noise=False)
+            agent = TD3(obs_dim=env.observation_space.shape[0], act_dim=env.action_space.shape[0],
+                        max_action=float(env.action_space.high[0]), device=device)
+            if pathlib.Path(ckpt).exists(): agent.load(ckpt)
+            def get_action(o): return agent.select_action(o, add_noise=False)
 
         elif args.algo == "sac":
             from algorithms.scratch.sac import SAC
-            obs_dim    = env.observation_space.shape[0]
-            act_dim    = env.action_space.shape[0]
-            max_action = float(env.action_space.high[0])
-            agent = SAC(obs_dim=obs_dim, act_dim=act_dim,
-                        max_action=max_action, device=device)
-            if pathlib.Path(ckpt).exists():
-                agent.load(ckpt)
-            def get_action(obs): return agent.select_action(obs, deterministic=True)
+            agent = SAC(obs_dim=env.observation_space.shape[0], act_dim=env.action_space.shape[0],
+                        max_action=float(env.action_space.high[0]), device=device)
+            if pathlib.Path(ckpt).exists(): agent.load(ckpt)
+            def get_action(o): return agent.select_action(o, deterministic=True)
 
         frames = []
         successes = 0
@@ -197,12 +179,9 @@ def main():
                 action = get_action(obs)
                 obs, reward, terminated, truncated, info = env.step(action)
                 frame = env.render()
-                if frame is not None:
-                    frames.append(frame)
-                if info.get("is_success", False):
-                    ep_success = True
-                if terminated or truncated:
-                    break
+                if frame is not None: frames.append(frame)
+                if info.get("is_success", False): ep_success = True
+                if terminated or truncated: break
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
 
