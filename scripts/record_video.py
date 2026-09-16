@@ -6,7 +6,6 @@ Record an MP4 video of a trained agent performing the task.
 Usage
 -----
     python scripts/record_video.py --algo sac --task pickandplace --her --sb3
-    python scripts/record_video.py --algo td3 --task pickandplace --her
 """
 
 import argparse
@@ -33,7 +32,7 @@ def parse_args():
     p.add_argument("--episodes",   type=int, default=5,
                    help="Number of episodes to record.")
     p.add_argument("--checkpoint", type=str, default=None)
-    p.add_argument("--fps",        type=int, default=30)
+    p.add_argument("--fps",        type=int, default=50)
     p.add_argument("--device",     type=str, default=None)
     return p.parse_args()
 
@@ -82,21 +81,51 @@ def main():
 
     is_sb3 = args.sb3 or (ckpt and ckpt.endswith(".zip"))
 
+    try:
+        import imageio
+    except ImportError:
+        print("[record] imageio not installed. Run: pip install imageio imageio-ffmpeg")
+        sys.exit(1)
+
+    frames = []
+    successes = 0
+
     if is_sb3:
         from stable_baselines3 import SAC, TD3, DDPG, PPO
+        from stable_baselines3.common.vec_env import DummyVecEnv
+
         task_map = {
             "reach": "PandaReach-v3",
             "pickandplace": "PandaPickAndPlace-v3",
             "push": "PandaPush-v3",
             "slide": "PandaSlide-v3",
         }
-        env = gym.make(task_map[args.task], render_mode="rgb_array")
+
+        def make_raw():
+            return gym.make(task_map[args.task], render_mode="rgb_array")
+
+        raw_env = make_raw()
+        env = DummyVecEnv([make_raw])
         algo_cls = {"sac": SAC, "td3": TD3, "ddpg": DDPG, "ppo": PPO}[args.algo]
         model = algo_cls.load(ckpt, env=env)
 
-        def get_action(obs):
-            action, _ = model.predict(obs, deterministic=True)
-            return action
+        print(f"[record] Recording {args.episodes} episodes of {run_tag} (SB3 Vectorized)...")
+        for ep in range(args.episodes):
+            obs = env.reset()
+            ep_success = False
+            for step in range(100):
+                action, _ = model.predict(obs, deterministic=True)
+                obs, reward, done, info = env.step(action)
+                frame = env.envs[0].render()
+                if frame is not None:
+                    frames.append(frame)
+                if done[0]:
+                    ep_success = info[0].get("is_success", False)
+                    break
+            successes += int(ep_success)
+            print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
+
+        env.close()
 
     else:
         env = make_env(args.task, render_mode="rgb_array", flatten=True)
@@ -122,32 +151,23 @@ def main():
                 agent.load(ckpt)
             def get_action(obs): return agent.select_action(obs, deterministic=True)
 
-    try:
-        import imageio
-    except ImportError:
-        print("[record] imageio not installed. Run: pip install imageio imageio-ffmpeg")
-        sys.exit(1)
+        print(f"[record] Recording {args.episodes} episodes of {run_tag}...")
+        for ep in range(args.episodes):
+            obs, _ = env.reset()
+            ep_success = False
+            for step in range(100):
+                action = get_action(obs)
+                obs, reward, terminated, truncated, info = env.step(action)
+                frame = env.render()
+                if frame is not None:
+                    frames.append(frame)
+                if terminated or truncated:
+                    ep_success = info.get("is_success", False)
+                    break
+            successes += int(ep_success)
+            print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
 
-    frames = []
-    successes = 0
-
-    print(f"[record] Recording {args.episodes} episodes of {run_tag}...")
-    for ep in range(args.episodes):
-        obs, _ = env.reset()
-        ep_success = False
-        for step in range(100):
-            action = get_action(obs)
-            obs, reward, terminated, truncated, info = env.step(action)
-            frame = env.render()
-            if frame is not None:
-                frames.append(frame)
-            if terminated or truncated:
-                ep_success = info.get("is_success", False)
-                break
-        successes += int(ep_success)
-        print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
-
-    env.close()
+        env.close()
 
     if frames:
         print(f"[record] Writing {len(frames)} frames to {vid_path} ...")
