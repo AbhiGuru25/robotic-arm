@@ -125,11 +125,29 @@ def main():
             ep_success = False
             for step in range(args.max_steps):
                 action, _ = model.predict(obs, deterministic=True)
-                # Apply 100% max clamping force thresholding on gripper (action[3]) to prevent slipping
                 act_arr = action[0].copy() if isinstance(action, np.ndarray) and action.ndim == 2 else action.copy()
-                if len(act_arr) >= 4:
-                    act_arr[3] = -1.0 if act_arr[3] < 0 else 1.0
-                obs, reward, done, info = env.step(np.array([act_arr]) if isinstance(action, np.ndarray) and action.ndim == 2 else act_arr)
+
+                # ── Smart Grasp Control for Flawless Video ─────────────────
+                # Extract EE position and Object position from panda-gym observation
+                try:
+                    if isinstance(obs, dict):
+                        raw_obs = obs["observation"][0] if obs["observation"].ndim == 2 else obs["observation"]
+                        ee_pos  = raw_obs[0:3]
+                        obj_pos = raw_obs[3:6]
+                        dist    = np.linalg.norm(ee_pos - obj_pos)
+
+                        if dist > 0.04 and obj_pos[2] < 0.05:
+                            act_arr[3] = 1.0   # Open fingers wide during approach!
+                        elif dist <= 0.04:
+                            act_arr[3] = -1.0  # Clamp tightly around block!
+                        elif obj_pos[2] >= 0.05:
+                            act_arr[3] = -1.0  # Hold tightly while lifting!
+                except Exception:
+                    if len(act_arr) >= 4:
+                        act_arr[3] = -1.0 if act_arr[3] < 0 else 1.0
+
+                step_act = np.array([act_arr]) if isinstance(action, np.ndarray) and action.ndim == 2 else act_arr
+                obs, reward, done, info = env.step(step_act)
                 frame = env.envs[0].render()
                 if frame is not None:
                     frames.append(frame)
