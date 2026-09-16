@@ -1,7 +1,7 @@
 """
 scripts/record_video.py
 ========================
-High-precision video recording script for robotic arm tasks.
+High-precision, slow-motion video recording script for robotic arm tasks.
 """
 
 import argparse
@@ -25,9 +25,9 @@ def parse_args():
     p.add_argument("--sb3",        action="store_true", default=True)
     p.add_argument("--seed",       type=int, default=0)
     p.add_argument("--episodes",   type=int, default=2)
-    p.add_argument("--max_steps",  type=int, default=100)
+    p.add_argument("--max_steps",  type=int, default=120)
     p.add_argument("--checkpoint", type=str, default=None)
-    p.add_argument("--fps",        type=int, default=35)
+    p.add_argument("--fps",        type=int, default=18)
     p.add_argument("--device",     type=str, default=None)
     return p.parse_args()
 
@@ -86,7 +86,7 @@ def main():
         frames = []
         successes = 0
 
-        print(f"[record] Recording {args.episodes} episodes with Precision Goal Alignment...")
+        print(f"[record] Recording {args.episodes} episodes in Slow-Motion ({args.fps} FPS)...")
 
         for ep in range(args.episodes):
             obs = env.reset()
@@ -102,42 +102,39 @@ def main():
                         ag      = obs["achieved_goal"][0] if isinstance(obs, dict) and obs["achieved_goal"].ndim == 2 else obs["achieved_goal"]
                         dg      = obs["desired_goal"][0] if isinstance(obs, dict) and obs["desired_goal"].ndim == 2 else obs["desired_goal"]
 
-                        ee_pos  = raw_obs[0:3]
-                        obj_pos = ag[0:3]       # Exact 3D block position!
-                        goal_pos = dg[0:3]      # Exact 3D target position!
+                        ee_pos   = raw_obs[0:3]
+                        obj_pos  = ag[0:3]
+                        goal_pos = dg[0:3]
 
                         xy_dist = np.linalg.norm(ee_pos[:2] - obj_pos[:2])
                         z_diff  = ee_pos[2] - obj_pos[2]
 
-                        # Stage 1: Align XY directly over exact block position at height
+                        # Damped slow-motion velocity gains
                         if xy_dist > 0.01 and obj_pos[2] < 0.05:
-                            act_arr[0] = np.clip(15.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
-                            act_arr[1] = np.clip(15.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
-                            act_arr[2] = np.clip(10.0 * (obj_pos[2] + 0.06 - ee_pos[2]), -1.0, 1.0)
-                            act_arr[3] = 1.0  # Open wide!
+                            act_arr[0] = np.clip(6.0 * (obj_pos[0] - ee_pos[0]), -0.5, 0.5)
+                            act_arr[1] = np.clip(6.0 * (obj_pos[1] - ee_pos[1]), -0.5, 0.5)
+                            act_arr[2] = np.clip(5.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -0.5, 0.5)
+                            act_arr[3] = 1.0
 
-                        # Stage 2: Descend vertically straight down onto block
                         elif xy_dist <= 0.01 and z_diff > 0.005 and obj_pos[2] < 0.05:
-                            act_arr[0] = np.clip(10.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
-                            act_arr[1] = np.clip(10.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
-                            act_arr[2] = -0.9  # Move straight down!
-                            act_arr[3] = 1.0   # Open wide!
+                            act_arr[0] = np.clip(4.0 * (obj_pos[0] - ee_pos[0]), -0.3, 0.3)
+                            act_arr[1] = np.clip(4.0 * (obj_pos[1] - ee_pos[1]), -0.3, 0.3)
+                            act_arr[2] = -0.4
+                            act_arr[3] = 1.0
 
-                        # Stage 3: Clamp block tightly
                         elif obj_pos[2] < 0.05 and z_diff <= 0.005:
                             act_arr[0] = 0.0
                             act_arr[1] = 0.0
-                            act_arr[2] = -0.3
-                            act_arr[3] = -1.0  # CLAMP TIGHT!
+                            act_arr[2] = -0.2
+                            act_arr[3] = -1.0
 
-                        # Stage 4: Lift block & carry to goal position
                         else:
-                            act_arr[0] = np.clip(10.0 * (goal_pos[0] - ee_pos[0]), -1.0, 1.0)
-                            act_arr[1] = np.clip(10.0 * (goal_pos[1] - ee_pos[1]), -1.0, 1.0)
-                            act_arr[2] = np.clip(10.0 * (goal_pos[2] - ee_pos[2]), -1.0, 1.0)
-                            act_arr[3] = -1.0  # HOLD TIGHT!
+                            act_arr[0] = np.clip(5.0 * (goal_pos[0] - ee_pos[0]), -0.4, 0.4)
+                            act_arr[1] = np.clip(5.0 * (goal_pos[1] - ee_pos[1]), -0.4, 0.4)
+                            act_arr[2] = np.clip(5.0 * (goal_pos[2] - ee_pos[2]), -0.4, 0.4)
+                            act_arr[3] = -1.0
 
-                    except Exception as e:
+                    except Exception:
                         pass
 
                 step_act = np.array([act_arr]) if isinstance(action, np.ndarray) and action.ndim == 2 else act_arr
@@ -196,7 +193,7 @@ def main():
     if frames:
         print(f"[record] Writing {len(frames)} frames to {vid_path} ...")
         imageio.mimwrite(str(vid_path), frames, fps=args.fps, quality=8)
-        print(f"[record] Video saved successfully: {vid_path}")
+        print(f"[record] Slow-Motion Video saved: {vid_path}")
     else:
         print("[record] No frames captured.")
 
