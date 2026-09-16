@@ -5,17 +5,8 @@ Record an MP4 video of a trained agent performing the task.
 
 Usage
 -----
-    # Record TD3 + HER on PandaPickAndPlace
-    python scripts/record_video.py --algo td3 --task pickandplace --her --seed 0
-
-    # Specify checkpoint manually
-    python scripts/record_video.py --algo sac --task pickandplace --her \
-        --checkpoint checkpoints/sac_her_pickandplace_seed0/best.pt \
-        --episodes 5
-
-Output
-------
-results/videos/<algo>_<task>_<seed>.mp4
+    python scripts/record_video.py --algo sac --task pickandplace --her --sb3
+    python scripts/record_video.py --algo td3 --task pickandplace --her
 """
 
 import argparse
@@ -36,6 +27,8 @@ def parse_args():
     p.add_argument("--task",       type=str, required=True,
                    choices=["reach", "pickandplace", "push", "slide"])
     p.add_argument("--her",        action="store_true", default=False)
+    p.add_argument("--sb3",        action="store_true", default=False,
+                   help="Use SB3 model checkpoint (.zip).")
     p.add_argument("--seed",       type=int, default=0)
     p.add_argument("--episodes",   type=int, default=5,
                    help="Number of episodes to record.")
@@ -49,65 +42,86 @@ def main():
     args   = parse_args()
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 
+    import gymnasium as gym
+    import panda_gym  # noqa: F401
     from envs.wrappers import make_env
 
-    # Use rgb_array render mode for video capture
-    env = make_env(args.task, render_mode="rgb_array", flatten=True)
-
-    her_tag  = "_her" if args.her else ""
-    run_tag  = f"{args.algo}{her_tag}_{args.task}_seed{args.seed}"
-    vid_dir  = ROOT / "results" / "videos"
+    her_tag = "_her" if args.her else ""
+    run_tag = f"{args.algo}{her_tag}_{args.task}_seed{args.seed}"
+    vid_dir = ROOT / "results" / "videos"
     vid_dir.mkdir(parents=True, exist_ok=True)
     vid_path = vid_dir / f"{run_tag}.mp4"
 
-    # ── Load agent ────────────────────────────────────────────────────
     ckpt_dir = ROOT / "checkpoints" / run_tag
-    candidates = [
-        args.checkpoint,
-        str(ckpt_dir / "best.pt"),
-        str(ckpt_dir / "best_model.zip"),
-        str(ckpt_dir / "final.pt"),
-        str(ckpt_dir / "final.zip"),
-        str(ckpt_dir / "best" / "best_model.zip"),
-    ]
+
+    if args.sb3:
+        candidates = [
+            args.checkpoint,
+            str(ckpt_dir / "best_model.zip"),
+            str(ckpt_dir / "final.zip"),
+            str(ckpt_dir / "step_500000_steps.zip"),
+            str(ckpt_dir / "step_450000_steps.zip"),
+            str(ckpt_dir / "best" / "best_model.zip"),
+        ]
+    else:
+        candidates = [
+            args.checkpoint,
+            str(ckpt_dir / "best_model.zip"),
+            str(ckpt_dir / "best.pt"),
+            str(ckpt_dir / "final.zip"),
+            str(ckpt_dir / "final.pt"),
+        ]
+
     ckpt = None
     for cand in candidates:
         if cand and pathlib.Path(cand).exists():
             ckpt = cand
             break
-    if ckpt is None:
-        ckpt = str(ckpt_dir / "best.pt")
-    if args.algo == "td3":
-        from algorithms.scratch.td3 import TD3
-        obs_dim    = env.observation_space.shape[0]
-        act_dim    = env.action_space.shape[0]
-        max_action = float(env.action_space.high[0])
-        agent = TD3(obs_dim=obs_dim, act_dim=act_dim,
-                    max_action=max_action, device=device)
-        if pathlib.Path(ckpt).exists():
-            agent.load(ckpt)
-        def get_action(obs): return agent.select_action(obs, add_noise=False)
 
-    elif args.algo == "sac":
-        from algorithms.scratch.sac import SAC
-        obs_dim    = env.observation_space.shape[0]
-        act_dim    = env.action_space.shape[0]
-        max_action = float(env.action_space.high[0])
-        agent = SAC(obs_dim=obs_dim, act_dim=act_dim,
-                    max_action=max_action, device=device)
-        if pathlib.Path(ckpt).exists():
-            agent.load(ckpt)
-        def get_action(obs): return agent.select_action(obs, deterministic=True)
+    print(f"[record] Using checkpoint: {ckpt}")
 
-    elif args.algo in ("ddpg", "ppo"):
-        import stable_baselines3 as sb3
-        Cls   = sb3.DDPG if args.algo == "ddpg" else sb3.PPO
-        model = Cls.load(ckpt, env=env)
+    is_sb3 = args.sb3 or (ckpt and ckpt.endswith(".zip"))
+
+    if is_sb3:
+        from stable_baselines3 import SAC, TD3, DDPG, PPO
+        task_map = {
+            "reach": "PandaReach-v3",
+            "pickandplace": "PandaPickAndPlace-v3",
+            "push": "PandaPush-v3",
+            "slide": "PandaSlide-v3",
+        }
+        env = gym.make(task_map[args.task], render_mode="rgb_array")
+        algo_cls = {"sac": SAC, "td3": TD3, "ddpg": DDPG, "ppo": PPO}[args.algo]
+        model = algo_cls.load(ckpt, env=env)
+
         def get_action(obs):
             action, _ = model.predict(obs, deterministic=True)
             return action
 
-    # ── Record episodes ────────────────────────────────────────────────
+    else:
+        env = make_env(args.task, render_mode="rgb_array", flatten=True)
+        if args.algo == "td3":
+            from algorithms.scratch.td3 import TD3
+            obs_dim    = env.observation_space.shape[0]
+            act_dim    = env.action_space.shape[0]
+            max_action = float(env.action_space.high[0])
+            agent = TD3(obs_dim=obs_dim, act_dim=act_dim,
+                        max_action=max_action, device=device)
+            if ckpt and pathlib.Path(ckpt).exists():
+                agent.load(ckpt)
+            def get_action(obs): return agent.select_action(obs, add_noise=False)
+
+        elif args.algo == "sac":
+            from algorithms.scratch.sac import SAC
+            obs_dim    = env.observation_space.shape[0]
+            act_dim    = env.action_space.shape[0]
+            max_action = float(env.action_space.high[0])
+            agent = SAC(obs_dim=obs_dim, act_dim=act_dim,
+                        max_action=max_action, device=device)
+            if ckpt and pathlib.Path(ckpt).exists():
+                agent.load(ckpt)
+            def get_action(obs): return agent.select_action(obs, deterministic=True)
+
     try:
         import imageio
     except ImportError:
@@ -121,7 +135,7 @@ def main():
     for ep in range(args.episodes):
         obs, _ = env.reset()
         ep_success = False
-        for step in range(200):
+        for step in range(100):
             action = get_action(obs)
             obs, reward, terminated, truncated, info = env.step(action)
             frame = env.render()
@@ -140,9 +154,9 @@ def main():
         imageio.mimwrite(str(vid_path), frames, fps=args.fps, quality=8)
         print(f"[record] Video saved: {vid_path}")
     else:
-        print("[record] No frames captured. Make sure render_mode='rgb_array' works.")
+        print("[record] No frames captured.")
 
-    print(f"[record] Success rate: {successes}/{args.episodes} = "
+    print(f"[record] Final Success rate: {successes}/{args.episodes} = "
           f"{successes / args.episodes:.0%}")
 
 
