@@ -86,7 +86,7 @@ def main():
         frames = []
         successes = 0
 
-        print(f"[record] Recording {args.episodes} episodes with Precision Alignment Controller...")
+        print(f"[record] Recording {args.episodes} episodes with Precision Goal Alignment...")
 
         for ep in range(args.episodes):
             obs = env.reset()
@@ -99,36 +99,42 @@ def main():
                 if args.task == "pickandplace":
                     try:
                         raw_obs = obs["observation"][0] if isinstance(obs, dict) and obs["observation"].ndim == 2 else obs["observation"]
+                        ag      = obs["achieved_goal"][0] if isinstance(obs, dict) and obs["achieved_goal"].ndim == 2 else obs["achieved_goal"]
+                        dg      = obs["desired_goal"][0] if isinstance(obs, dict) and obs["desired_goal"].ndim == 2 else obs["desired_goal"]
+
                         ee_pos  = raw_obs[0:3]
-                        obj_pos = raw_obs[3:6]
-                        goal_pos = raw_obs[6:9]
+                        obj_pos = ag[0:3]       # Exact 3D block position!
+                        goal_pos = dg[0:3]      # Exact 3D target position!
 
                         xy_dist = np.linalg.norm(ee_pos[:2] - obj_pos[:2])
                         z_diff  = ee_pos[2] - obj_pos[2]
 
-                        # Stage 1: Align XY directly over the object at height
-                        if xy_dist > 0.012 and obj_pos[2] < 0.05:
-                            act_arr[0] = np.clip(12.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
-                            act_arr[1] = np.clip(12.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
-                            act_arr[2] = np.clip(8.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -1.0, 1.0)
+                        # Stage 1: Align XY directly over exact block position at height
+                        if xy_dist > 0.01 and obj_pos[2] < 0.05:
+                            act_arr[0] = np.clip(15.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
+                            act_arr[1] = np.clip(15.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
+                            act_arr[2] = np.clip(10.0 * (obj_pos[2] + 0.06 - ee_pos[2]), -1.0, 1.0)
                             act_arr[3] = 1.0  # Open wide!
 
-                        # Stage 2: Descend vertically onto object
-                        elif xy_dist <= 0.012 and z_diff > 0.005 and obj_pos[2] < 0.05:
-                            act_arr[0] = np.clip(8.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
-                            act_arr[1] = np.clip(8.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
-                            act_arr[2] = -0.8  # Move straight down!
+                        # Stage 2: Descend vertically straight down onto block
+                        elif xy_dist <= 0.01 and z_diff > 0.005 and obj_pos[2] < 0.05:
+                            act_arr[0] = np.clip(10.0 * (obj_pos[0] - ee_pos[0]), -1.0, 1.0)
+                            act_arr[1] = np.clip(10.0 * (obj_pos[1] - ee_pos[1]), -1.0, 1.0)
+                            act_arr[2] = -0.9  # Move straight down!
                             act_arr[3] = 1.0   # Open wide!
 
-                        # Stage 3: Clamp object tightly
+                        # Stage 3: Clamp block tightly
                         elif obj_pos[2] < 0.05 and z_diff <= 0.005:
                             act_arr[0] = 0.0
                             act_arr[1] = 0.0
                             act_arr[2] = -0.3
                             act_arr[3] = -1.0  # CLAMP TIGHT!
 
-                        # Stage 4: Lift object & move to goal
+                        # Stage 4: Lift block & carry to goal position
                         else:
+                            act_arr[0] = np.clip(10.0 * (goal_pos[0] - ee_pos[0]), -1.0, 1.0)
+                            act_arr[1] = np.clip(10.0 * (goal_pos[1] - ee_pos[1]), -1.0, 1.0)
+                            act_arr[2] = np.clip(10.0 * (goal_pos[2] - ee_pos[2]), -1.0, 1.0)
                             act_arr[3] = -1.0  # HOLD TIGHT!
 
                     except Exception as e:
