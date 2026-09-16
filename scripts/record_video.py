@@ -1,7 +1,7 @@
 """
 scripts/record_video.py
 ========================
-High-precision, slow-motion video recording script for robotic arm tasks.
+High-precision single-episode continuous video recorder (Zero Jump Cuts).
 """
 
 import argparse
@@ -24,10 +24,10 @@ def parse_args():
     p.add_argument("--her",        action="store_true", default=True)
     p.add_argument("--sb3",        action="store_true", default=True)
     p.add_argument("--seed",       type=int, default=0)
-    p.add_argument("--episodes",   type=int, default=2)
-    p.add_argument("--max_steps",  type=int, default=120)
+    p.add_argument("--episodes",   type=int, default=1, help="Set to 1 to prevent jump cuts between episodes!")
+    p.add_argument("--max_steps",  type=int, default=150)
     p.add_argument("--checkpoint", type=str, default=None)
-    p.add_argument("--fps",        type=int, default=18)
+    p.add_argument("--fps",        type=int, default=24)
     p.add_argument("--device",     type=str, default=None)
     return p.parse_args()
 
@@ -86,7 +86,7 @@ def main():
         frames = []
         successes = 0
 
-        print(f"[record] Recording {args.episodes} episodes in Slow-Motion ({args.fps} FPS)...")
+        print(f"[record] Recording 1 Single Continuous Episode (Zero Jump Cuts)...")
 
         for ep in range(args.episodes):
             obs = env.reset()
@@ -109,17 +109,17 @@ def main():
                         xy_dist = np.linalg.norm(ee_pos[:2] - obj_pos[:2])
                         z_diff  = ee_pos[2] - obj_pos[2]
 
-                        # Damped slow-motion velocity gains
+                        # Continuous Stage Controller
                         if xy_dist > 0.01 and obj_pos[2] < 0.05:
-                            act_arr[0] = np.clip(6.0 * (obj_pos[0] - ee_pos[0]), -0.5, 0.5)
-                            act_arr[1] = np.clip(6.0 * (obj_pos[1] - ee_pos[1]), -0.5, 0.5)
-                            act_arr[2] = np.clip(5.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -0.5, 0.5)
+                            act_arr[0] = np.clip(8.0 * (obj_pos[0] - ee_pos[0]), -0.6, 0.6)
+                            act_arr[1] = np.clip(8.0 * (obj_pos[1] - ee_pos[1]), -0.6, 0.6)
+                            act_arr[2] = np.clip(6.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -0.6, 0.6)
                             act_arr[3] = 1.0
 
                         elif xy_dist <= 0.01 and z_diff > 0.005 and obj_pos[2] < 0.05:
-                            act_arr[0] = np.clip(4.0 * (obj_pos[0] - ee_pos[0]), -0.3, 0.3)
-                            act_arr[1] = np.clip(4.0 * (obj_pos[1] - ee_pos[1]), -0.3, 0.3)
-                            act_arr[2] = -0.4
+                            act_arr[0] = np.clip(6.0 * (obj_pos[0] - ee_pos[0]), -0.4, 0.4)
+                            act_arr[1] = np.clip(6.0 * (obj_pos[1] - ee_pos[1]), -0.4, 0.4)
+                            act_arr[2] = -0.5
                             act_arr[3] = 1.0
 
                         elif obj_pos[2] < 0.05 and z_diff <= 0.005:
@@ -129,9 +129,9 @@ def main():
                             act_arr[3] = -1.0
 
                         else:
-                            act_arr[0] = np.clip(5.0 * (goal_pos[0] - ee_pos[0]), -0.4, 0.4)
-                            act_arr[1] = np.clip(5.0 * (goal_pos[1] - ee_pos[1]), -0.4, 0.4)
-                            act_arr[2] = np.clip(5.0 * (goal_pos[2] - ee_pos[2]), -0.4, 0.4)
+                            act_arr[0] = np.clip(6.0 * (goal_pos[0] - ee_pos[0]), -0.5, 0.5)
+                            act_arr[1] = np.clip(6.0 * (goal_pos[1] - ee_pos[1]), -0.5, 0.5)
+                            act_arr[2] = np.clip(6.0 * (goal_pos[2] - ee_pos[2]), -0.5, 0.5)
                             act_arr[3] = -1.0
 
                     except Exception:
@@ -146,8 +146,6 @@ def main():
 
                 if info[0].get("is_success", False):
                     ep_success = True
-                if done[0]:
-                    break
 
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
@@ -184,7 +182,6 @@ def main():
                 frame = env.render()
                 if frame is not None: frames.append(frame)
                 if info.get("is_success", False): ep_success = True
-                if terminated or truncated: break
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
 
@@ -193,7 +190,7 @@ def main():
     if frames:
         print(f"[record] Writing {len(frames)} frames to {vid_path} ...")
         imageio.mimwrite(str(vid_path), frames, fps=args.fps, quality=8)
-        print(f"[record] Slow-Motion Video saved: {vid_path}")
+        print(f"[record] Continuous Video saved: {vid_path}")
     else:
         print("[record] No frames captured.")
 
