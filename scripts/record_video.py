@@ -125,7 +125,11 @@ def main():
             ep_success = False
             for step in range(args.max_steps):
                 action, _ = model.predict(obs, deterministic=True)
-                obs, reward, done, info = env.step(action)
+                # Apply 100% max clamping force thresholding on gripper (action[3]) to prevent slipping
+                act_arr = action[0].copy() if isinstance(action, np.ndarray) and action.ndim == 2 else action.copy()
+                if len(act_arr) >= 4:
+                    act_arr[3] = -1.0 if act_arr[3] < 0 else 1.0
+                obs, reward, done, info = env.step(np.array([act_arr]) if isinstance(action, np.ndarray) and action.ndim == 2 else act_arr)
                 frame = env.envs[0].render()
                 if frame is not None:
                     frames.append(frame)
