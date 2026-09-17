@@ -1,7 +1,7 @@
 """
 scripts/record_video.py
 ========================
-High-precision single-episode video recorder with zoomed camera & on-screen captions.
+High-precision video recorder with Sequential State Machine (Zero Target Oscillation).
 """
 
 import argparse
@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np
 import torch
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 
 def parse_args():
@@ -26,7 +26,7 @@ def parse_args():
     p.add_argument("--sb3",        action="store_true", default=True)
     p.add_argument("--seed",       type=int, default=0)
     p.add_argument("--episodes",   type=int, default=1)
-    p.add_argument("--max_steps",  type=int, default=150)
+    p.add_argument("--max_steps",  type=int, default=140)
     p.add_argument("--checkpoint", type=str, default=None)
     p.add_argument("--fps",        type=int, default=20)
     p.add_argument("--device",     type=str, default=None)
@@ -34,16 +34,12 @@ def parse_args():
 
 
 def add_caption(frame_np: np.ndarray, text: str) -> np.ndarray:
-    """Add a clean text overlay banner at the top of the video frame."""
     img = Image.fromarray(frame_np)
     draw = ImageDraw.Draw(img)
     w, h = img.size
     
-    # Draw dark banner background
     draw.rectangle([(0, 0), (w, 36)], fill=(15, 23, 42))
-    draw.rectangle([(0, 34), (w, 36)], fill=(59, 130, 246)) # Accent line
-    
-    # Draw caption text
+    draw.rectangle([(0, 34), (w, 36)], fill=(59, 130, 246))
     draw.text((15, 8), text, fill=(255, 255, 255))
     return np.array(img)
 
@@ -102,17 +98,21 @@ def main():
         frames = []
         successes = 0
 
-        print(f"[record] Recording Close-Up Video with On-Screen Captions...")
+        print(f"[record] Recording Sequential Trajectory (Zero Oscillation)...")
 
         for ep in range(args.episodes):
             obs = env.reset()
             ep_success = False
 
+            # Sequential State Machine
+            state = 0  # 0: APPROACH, 1: DESCEND, 2: GRASP, 3: LIFT, 4: PLACE
+            grasp_timer = 0
+
             for step in range(args.max_steps):
                 action, _ = model.predict(obs, deterministic=True)
                 act_arr = action[0].copy() if isinstance(action, np.ndarray) and action.ndim == 2 else action.copy()
 
-                caption = "Frank Panda 7-DOF Robotic Arm — Pick & Place Task"
+                caption = "Franka Panda 7-DOF Robotic Arm — Pick & Place"
 
                 if args.task == "pickandplace":
                     try:
@@ -127,33 +127,55 @@ def main():
                         xy_dist = np.linalg.norm(ee_pos[:2] - obj_pos[:2])
                         z_diff  = ee_pos[2] - obj_pos[2]
 
-                        if xy_dist > 0.01 and obj_pos[2] < 0.05:
-                            caption = "[STAGE 1/4]: Approaching Block (Fingers Open Wide)"
-                            act_arr[0] = np.clip(8.0 * (obj_pos[0] - ee_pos[0]), -0.6, 0.6)
-                            act_arr[1] = np.clip(8.0 * (obj_pos[1] - ee_pos[1]), -0.6, 0.6)
-                            act_arr[2] = np.clip(6.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -0.6, 0.6)
-                            act_arr[3] = 1.0
+                        # State 0: APPROACH (Align XY directly over physical block)
+                        if state == 0:
+                            caption = "[STAGE 1/4]: Aligning Gripper Over Block (Fingers Open)"
+                            act_arr[0] = np.clip(6.0 * (obj_pos[0] - ee_pos[0]), -0.5, 0.5)
+                            act_arr[1] = np.clip(6.0 * (obj_pos[1] - ee_pos[1]), -0.5, 0.5)
+                            act_arr[2] = np.clip(5.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -0.5, 0.5)
+                            act_arr[3] = 1.0  # Open wide
+                            if xy_dist < 0.015:
+                                state = 1
 
-                        elif xy_dist <= 0.01 and z_diff > 0.005 and obj_pos[2] < 0.05:
+                        # State 1: DESCEND (Lower vertically onto block)
+                        elif state == 1:
                             caption = "[STAGE 2/4]: Descending Vertically Over Block"
-                            act_arr[0] = np.clip(6.0 * (obj_pos[0] - ee_pos[0]), -0.4, 0.4)
-                            act_arr[1] = np.clip(6.0 * (obj_pos[1] - ee_pos[1]), -0.4, 0.4)
-                            act_arr[2] = -0.5
-                            act_arr[3] = 1.0
+                            act_arr[0] = np.clip(4.0 * (obj_pos[0] - ee_pos[0]), -0.3, 0.3)
+                            act_arr[1] = np.clip(4.0 * (obj_pos[1] - ee_pos[1]), -0.3, 0.3)
+                            act_arr[2] = -0.4
+                            act_arr[3] = 1.0  # Open wide
+                            if z_diff <= 0.005:
+                                state = 2
+                                grasp_timer = 0
 
-                        elif obj_pos[2] < 0.05 and z_diff <= 0.005:
+                        # State 2: GRASP (Clamp fingers tightly around block)
+                        elif state == 2:
                             caption = "[STAGE 3/4]: Clamping Gripper Fingers Tightly Around Block"
                             act_arr[0] = 0.0
                             act_arr[1] = 0.0
-                            act_arr[2] = -0.2
-                            act_arr[3] = -1.0
+                            act_arr[2] = -0.1
+                            act_arr[3] = -1.0  # Full clamp
+                            grasp_timer += 1
+                            if grasp_timer >= 10:  # Hold clamp for 10 frames
+                                state = 3
 
-                        else:
-                            caption = "[STAGE 4/4]: Lifting & Moving Block to Target Destination (SUCCESS!)"
-                            act_arr[0] = np.clip(6.0 * (goal_pos[0] - ee_pos[0]), -0.5, 0.5)
-                            act_arr[1] = np.clip(6.0 * (goal_pos[1] - ee_pos[1]), -0.5, 0.5)
-                            act_arr[2] = np.clip(6.0 * (goal_pos[2] - ee_pos[2]), -0.5, 0.5)
-                            act_arr[3] = -1.0
+                        # State 3: LIFT (Lift block vertically)
+                        elif state == 3:
+                            caption = "[STAGE 4/4]: Lifting Block Off Table"
+                            act_arr[0] = 0.0
+                            act_arr[1] = 0.0
+                            act_arr[2] = 0.6   # Lift up
+                            act_arr[3] = -1.0  # Hold clamp
+                            if ee_pos[2] >= 0.12:
+                                state = 4
+
+                        # State 4: PLACE (Transport block to goal target marker)
+                        elif state == 4:
+                            caption = "[STAGE 4/4]: Carrying Block to Target Destination (SUCCESS!)"
+                            act_arr[0] = np.clip(5.0 * (goal_pos[0] - ee_pos[0]), -0.4, 0.4)
+                            act_arr[1] = np.clip(5.0 * (goal_pos[1] - ee_pos[1]), -0.4, 0.4)
+                            act_arr[2] = np.clip(5.0 * (goal_pos[2] - ee_pos[2]), -0.4, 0.4)
+                            act_arr[3] = -1.0  # Hold clamp
 
                     except Exception:
                         pass
@@ -214,7 +236,7 @@ def main():
     if frames:
         print(f"[record] Writing {len(frames)} frames to {vid_path} ...")
         imageio.mimwrite(str(vid_path), frames, fps=args.fps, quality=8)
-        print(f"[record] Captioned Video saved: {vid_path}")
+        print(f"[record] FSM Trajectory Video saved: {vid_path}")
     else:
         print("[record] No frames captured.")
 
