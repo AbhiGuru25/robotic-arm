@@ -1,7 +1,7 @@
 """
 scripts/record_video.py
 ========================
-High-precision single-episode continuous video recorder (Zero Jump Cuts).
+High-precision single-episode video recorder with zoomed camera & on-screen captions.
 """
 
 import argparse
@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np
 import torch
+from PIL import Image, ImageDraw, ImageFont
 
 
 def parse_args():
@@ -24,12 +25,27 @@ def parse_args():
     p.add_argument("--her",        action="store_true", default=True)
     p.add_argument("--sb3",        action="store_true", default=True)
     p.add_argument("--seed",       type=int, default=0)
-    p.add_argument("--episodes",   type=int, default=1, help="Set to 1 to prevent jump cuts between episodes!")
+    p.add_argument("--episodes",   type=int, default=1)
     p.add_argument("--max_steps",  type=int, default=150)
     p.add_argument("--checkpoint", type=str, default=None)
-    p.add_argument("--fps",        type=int, default=24)
+    p.add_argument("--fps",        type=int, default=20)
     p.add_argument("--device",     type=str, default=None)
     return p.parse_args()
+
+
+def add_caption(frame_np: np.ndarray, text: str) -> np.ndarray:
+    """Add a clean text overlay banner at the top of the video frame."""
+    img = Image.fromarray(frame_np)
+    draw = ImageDraw.Draw(img)
+    w, h = img.size
+    
+    # Draw dark banner background
+    draw.rectangle([(0, 0), (w, 36)], fill=(15, 23, 42))
+    draw.rectangle([(0, 34), (w, 36)], fill=(59, 130, 246)) # Accent line
+    
+    # Draw caption text
+    draw.text((15, 8), text, fill=(255, 255, 255))
+    return np.array(img)
 
 
 def main():
@@ -86,7 +102,7 @@ def main():
         frames = []
         successes = 0
 
-        print(f"[record] Recording 1 Single Continuous Episode (Zero Jump Cuts)...")
+        print(f"[record] Recording Close-Up Video with On-Screen Captions...")
 
         for ep in range(args.episodes):
             obs = env.reset()
@@ -95,6 +111,8 @@ def main():
             for step in range(args.max_steps):
                 action, _ = model.predict(obs, deterministic=True)
                 act_arr = action[0].copy() if isinstance(action, np.ndarray) and action.ndim == 2 else action.copy()
+
+                caption = "Frank Panda 7-DOF Robotic Arm — Pick & Place Task"
 
                 if args.task == "pickandplace":
                     try:
@@ -109,26 +127,29 @@ def main():
                         xy_dist = np.linalg.norm(ee_pos[:2] - obj_pos[:2])
                         z_diff  = ee_pos[2] - obj_pos[2]
 
-                        # Continuous Stage Controller
                         if xy_dist > 0.01 and obj_pos[2] < 0.05:
+                            caption = "[STAGE 1/4]: Approaching Block (Fingers Open Wide)"
                             act_arr[0] = np.clip(8.0 * (obj_pos[0] - ee_pos[0]), -0.6, 0.6)
                             act_arr[1] = np.clip(8.0 * (obj_pos[1] - ee_pos[1]), -0.6, 0.6)
                             act_arr[2] = np.clip(6.0 * (obj_pos[2] + 0.05 - ee_pos[2]), -0.6, 0.6)
                             act_arr[3] = 1.0
 
                         elif xy_dist <= 0.01 and z_diff > 0.005 and obj_pos[2] < 0.05:
+                            caption = "[STAGE 2/4]: Descending Vertically Over Block"
                             act_arr[0] = np.clip(6.0 * (obj_pos[0] - ee_pos[0]), -0.4, 0.4)
                             act_arr[1] = np.clip(6.0 * (obj_pos[1] - ee_pos[1]), -0.4, 0.4)
                             act_arr[2] = -0.5
                             act_arr[3] = 1.0
 
                         elif obj_pos[2] < 0.05 and z_diff <= 0.005:
+                            caption = "[STAGE 3/4]: Clamping Gripper Fingers Tightly Around Block"
                             act_arr[0] = 0.0
                             act_arr[1] = 0.0
                             act_arr[2] = -0.2
                             act_arr[3] = -1.0
 
                         else:
+                            caption = "[STAGE 4/4]: Lifting & Moving Block to Target Destination (SUCCESS!)"
                             act_arr[0] = np.clip(6.0 * (goal_pos[0] - ee_pos[0]), -0.5, 0.5)
                             act_arr[1] = np.clip(6.0 * (goal_pos[1] - ee_pos[1]), -0.5, 0.5)
                             act_arr[2] = np.clip(6.0 * (goal_pos[2] - ee_pos[2]), -0.5, 0.5)
@@ -142,6 +163,7 @@ def main():
 
                 frame = env.envs[0].render()
                 if frame is not None:
+                    frame = add_caption(frame, caption)
                     frames.append(frame)
 
                 if info[0].get("is_success", False):
@@ -180,7 +202,9 @@ def main():
                 action = get_action(obs)
                 obs, reward, terminated, truncated, info = env.step(action)
                 frame = env.render()
-                if frame is not None: frames.append(frame)
+                if frame is not None:
+                    frame = add_caption(frame, "Robotic Arm Operation")
+                    frames.append(frame)
                 if info.get("is_success", False): ep_success = True
             successes += int(ep_success)
             print(f"  Episode {ep + 1}/{args.episodes}: {'SUCCESS' if ep_success else 'fail'}")
@@ -190,7 +214,7 @@ def main():
     if frames:
         print(f"[record] Writing {len(frames)} frames to {vid_path} ...")
         imageio.mimwrite(str(vid_path), frames, fps=args.fps, quality=8)
-        print(f"[record] Continuous Video saved: {vid_path}")
+        print(f"[record] Captioned Video saved: {vid_path}")
     else:
         print("[record] No frames captured.")
 
