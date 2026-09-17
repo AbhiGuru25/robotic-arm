@@ -159,14 +159,14 @@ def main():
                             if grasp_timer >= 10:  # Hold clamp for 10 frames
                                 state = 3
 
-                        # State 3: LIFT (Lift block vertically)
+                        # State 3: LIFT (Smooth Damped Elevation - Zero Snap/Teleport)
                         elif state == 3:
-                            caption = "[STAGE 4/4]: Lifting Block Off Table"
-                            act_arr[0] = 0.0
-                            act_arr[1] = 0.0
-                            act_arr[2] = 0.6   # Lift up
+                            caption = "[STAGE 3/4]: Lifting Block Off Table Smoothly"
+                            act_arr[0] = np.clip(3.0 * (obj_pos[0] - ee_pos[0]), -0.1, 0.1)
+                            act_arr[1] = np.clip(3.0 * (obj_pos[1] - ee_pos[1]), -0.1, 0.1)
+                            act_arr[2] = np.clip(2.5 * (0.12 - ee_pos[2]), 0.05, 0.18)  # Smooth damped lift!
                             act_arr[3] = -1.0  # Hold clamp
-                            if ee_pos[2] >= 0.12:
+                            if ee_pos[2] >= 0.11:
                                 state = 4
 
                         # State 4: PLACE (Transport block to goal target marker)
