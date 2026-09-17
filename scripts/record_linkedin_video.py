@@ -96,7 +96,7 @@ def main():
     candidates = list(ckpt_dir.glob("*.zip")) if ckpt_dir.exists() else []
 
     def make_raw():
-        env_inst = gym.make(task_map[args.task], render_mode="rgb_array", width=800, height=600)
+        env_inst = gym.make(task_map[args.task], render_mode="rgb_array")
         try:
             # Set Zoomed Close-Up Camera Angle
             env_inst.unwrapped.simulation.physics_client.resetDebugVisualizerCamera(
