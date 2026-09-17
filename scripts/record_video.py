@@ -89,7 +89,18 @@ def main():
         algo_cls = {"sac": SAC, "td3": TD3, "ddpg": DDPG, "ppo": PPO}[args.algo]
 
         def make_raw():
-            return gym.make(task_map[args.task], render_mode="rgb_array")
+            env_inst = gym.make(task_map[args.task], render_mode="rgb_array")
+            try:
+                # Set PyBullet Zoomed Close-Up Camera View
+                env_inst.unwrapped.simulation.physics_client.resetDebugVisualizerCamera(
+                    cameraDistance=0.7,
+                    cameraPitch=-22,
+                    cameraYaw=35,
+                    cameraTargetPosition=[0.1, 0.0, 0.05]
+                )
+            except Exception:
+                pass
+            return env_inst
 
         env = DummyVecEnv([make_raw])
         ckpt = candidates[0]
