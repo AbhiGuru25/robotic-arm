@@ -231,7 +231,7 @@
         <div class="absolute bottom-4 left-4 bg-[#070a11]/90 backdrop-blur px-3.5 py-2 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5 pointer-events-none shadow-lg">
           <div>Model: <span class="text-white font-bold">Franka Emika Panda (7-DOF)</span></div>
           <div>End-Effector Pose: <span id="dispEE" class="text-blue-400">[0.35, 0.45, 0.28]m</span></div>
-          <div>Execution Status: <span class="text-emerald-400 font-semibold">Autonomous Trajectory Active</span></div>
+          <div>Execution Status: <span id="dispStatus" class="text-emerald-400 font-semibold">Phase 1: Approaching Target Cube Pose</span></div>
         </div>
       </div>
     </div>
@@ -325,6 +325,37 @@
     let armBase, link1, link2, link3, link4, link5, wristFlange, fingerLeft, fingerRight;
     let payloadMesh, targetMesh;
     let autoStep = 0;
+    let cycleCount = 1;
+
+    const CUBE_HOME = new THREE.Vector3(-0.15, 0.58, 0.20);
+    const TARGET_POS = new THREE.Vector3(0.35, 0.541, -0.15);
+    const BASE_POS = new THREE.Vector3(-0.50, 0.54, 0.00);
+
+    function solveArmIK(targetX, targetY, targetZ) {
+      const dx = targetX - BASE_POS.x;
+      const dz = targetZ - BASE_POS.z;
+      const dy = targetY - BASE_POS.y;
+
+      const yaw = Math.atan2(-dz, dx);
+      const r = Math.sqrt(dx * dx + dz * dz);
+      const h = dy;
+
+      const l1 = 0.42;
+      const l2 = 0.40;
+      const distSq = r * r + h * h;
+      const dist = Math.sqrt(distSq);
+
+      const cosAlpha = Math.min(1.0, Math.max(-1.0, (l1 * l1 + distSq - l2 * l2) / (2 * l1 * dist)));
+      const cosBeta = Math.min(1.0, Math.max(-1.0, (l1 * l1 + l2 * l2 - distSq) / (2 * l1 * l2)));
+
+      const alpha = Math.acos(cosAlpha);
+      const beta = Math.acos(cosBeta);
+
+      const shoulderAngle = -Math.atan2(h, r) - alpha + Math.PI / 2;
+      const elbowAngle = -(Math.PI - beta);
+
+      return { yaw, shoulder: shoulderAngle, elbow: elbowAngle };
+    }
 
     function init3D() {
       const container = document.getElementById('threejs-container');
@@ -387,7 +418,7 @@
 
       // Base Pedestal
       armBase = new THREE.Group();
-      armBase.position.set(-0.5, 0.54, 0);
+      armBase.position.copy(BASE_POS);
 
       const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.1, 32), matPandaBlack);
       baseMesh.castShadow = true;
@@ -458,22 +489,22 @@
       fingerRight = new THREE.Mesh(fingerGeo, matChrome);
       fingerRight.position.set(0.04, 0.07, 0); fingerRight.castShadow = true; wristFlange.add(fingerRight);
 
-      // Payload Object
+      // Payload Object (Cube)
       payloadMesh = new THREE.Mesh(
         new THREE.BoxGeometry(0.08, 0.08, 0.08),
         new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.2 })
       );
-      payloadMesh.position.set(0.0, 0.58, 0.2);
+      payloadMesh.position.copy(CUBE_HOME);
       payloadMesh.castShadow = true;
       scene.add(payloadMesh);
 
-      // Target Circle
+      // Target Circle Ring
       targetMesh = new THREE.Mesh(
         new THREE.RingGeometry(0.07, 0.09, 32),
         new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide })
       );
       targetMesh.rotation.x = Math.PI / 2;
-      targetMesh.position.set(0.4, 0.541, -0.15);
+      targetMesh.position.copy(TARGET_POS);
       scene.add(targetMesh);
 
       window.addEventListener('resize', onWindowResize);
@@ -493,25 +524,109 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      autoStep += 0.015;
-      const rad1 = Math.sin(autoStep) * 0.7;
-      const rad2 = -0.5 + Math.sin(autoStep * 0.5) * 0.3;
-      const rad4 = -1.5 + Math.cos(autoStep * 0.5) * 0.4;
+      autoStep += 0.0022; // Smooth 12s cycle speed
+      const t = autoStep % 1.0;
 
-      if (link1) link1.rotation.y = rad1;
-      if (link2) link2.rotation.z = rad2;
-      if (link4) link4.rotation.z = rad4;
+      const currentTarget = new THREE.Vector3();
+      let gripperWidth = 0.04;
+      let isCubeAttached = false;
+      let phaseText = "";
 
-      if (fingerLeft && fingerRight) {
-        const close = Math.sin(autoStep) > 0.5;
-        fingerLeft.position.x = close ? -0.015 : -0.04;
-        fingerRight.position.x = close ? 0.015 : 0.04;
+      if (t < 0.15) {
+        // Phase 1: Hover above Cube
+        const p = t / 0.15;
+        currentTarget.lerpVectors(new THREE.Vector3(-0.15, 0.85, 0.20), new THREE.Vector3(-0.15, 0.68, 0.20), p);
+        gripperWidth = 0.04;
+        isCubeAttached = false;
+        payloadMesh.position.copy(CUBE_HOME);
+        targetMesh.material.color.setHex(0x38bdf8);
+        phaseText = "Phase 1: Approaching Target Cube Pose";
+      } else if (t < 0.25) {
+        // Phase 2: Touch Cube & Close Gripper
+        const p = (t - 0.15) / 0.10;
+        currentTarget.set(-0.15, 0.60, 0.20);
+        gripperWidth = THREE.MathUtils.lerp(0.04, 0.015, p);
+        isCubeAttached = p > 0.6;
+        if (!isCubeAttached) payloadMesh.position.copy(CUBE_HOME);
+        phaseText = "Phase 2: Gripper Actuation & Contact Latching";
+      } else if (t < 0.40) {
+        // Phase 3: Lift Cube up into Air
+        const p = (t - 0.25) / 0.15;
+        currentTarget.lerpVectors(new THREE.Vector3(-0.15, 0.60, 0.20), new THREE.Vector3(-0.15, 0.92, 0.20), p);
+        gripperWidth = 0.015;
+        isCubeAttached = true;
+        phaseText = "Phase 3: Elevating Payload (Sparse-Reward Check)";
+      } else if (t < 0.65) {
+        // Phase 4: Swing Arm to Target Ring Position
+        const p = (t - 0.40) / 0.25;
+        const startHover = new THREE.Vector3(-0.15, 0.92, 0.20);
+        const endHover = new THREE.Vector3(0.35, 0.92, -0.15);
+        currentTarget.lerpVectors(startHover, endHover, p);
+        currentTarget.y += Math.sin(p * Math.PI) * 0.08; // Arc lift
+        gripperWidth = 0.015;
+        isCubeAttached = true;
+        phaseText = "Phase 4: Autonomous Trajectory Transport to Goal";
+      } else if (t < 0.78) {
+        // Phase 5: Lower Cube into Target Ring
+        const p = (t - 0.65) / 0.13;
+        currentTarget.lerpVectors(new THREE.Vector3(0.35, 0.92, -0.15), new THREE.Vector3(0.35, 0.58, -0.15), p);
+        gripperWidth = 0.015;
+        isCubeAttached = true;
+        phaseText = "Phase 5: Precision Placement into Target Circle";
+      } else if (t < 0.88) {
+        // Phase 6: Release Gripper & Drop Payload
+        const p = (t - 0.78) / 0.10;
+        currentTarget.set(0.35, 0.58, -0.15);
+        gripperWidth = THREE.MathUtils.lerp(0.015, 0.04, p);
+        isCubeAttached = false;
+        payloadMesh.position.set(0.35, 0.58, -0.15);
+        targetMesh.material.color.setHex(0x22c55e); // Green success glow!
+        phaseText = "Phase 6: Goal Met! Gripper Released";
+      } else {
+        // Phase 7: Retract Arm & Reset Cycle
+        const p = (t - 0.88) / 0.12;
+        currentTarget.lerpVectors(new THREE.Vector3(0.35, 0.58, -0.15), new THREE.Vector3(-0.15, 0.85, 0.20), p);
+        gripperWidth = 0.04;
+        isCubeAttached = false;
+        payloadMesh.position.set(0.35, 0.58, -0.15);
+        if (t > 0.98) {
+          payloadMesh.position.copy(CUBE_HOME);
+          targetMesh.material.color.setHex(0x38bdf8);
+        }
+        phaseText = "Phase 7: Retracting Arm - Preparing Next Cycle";
       }
 
-      if (wristFlange && payloadMesh) {
-        const wristWorld = new THREE.Vector3();
-        wristFlange.getWorldPosition(wristWorld);
-        document.getElementById('dispEE').innerText = `[${wristWorld.x.toFixed(2)}, ${wristWorld.y.toFixed(2)}, ${wristWorld.z.toFixed(2)}]m`;
+      // Solve IK for currentTarget position
+      const ik = solveArmIK(currentTarget.x, currentTarget.y, currentTarget.z);
+      if (link1) link1.rotation.y = ik.yaw;
+      if (link2) link2.rotation.z = ik.shoulder;
+      if (link4) link4.rotation.z = ik.elbow;
+
+      if (fingerLeft && fingerRight) {
+        fingerLeft.position.x = -gripperWidth;
+        fingerRight.position.x = gripperWidth;
+      }
+
+      // Attach cube to end-effector if latched
+      if (isCubeAttached && wristFlange) {
+        const wristPos = new THREE.Vector3();
+        wristFlange.getWorldPosition(wristPos);
+        payloadMesh.position.copy(wristPos);
+        payloadMesh.position.y -= 0.05;
+      }
+
+      if (wristFlange) {
+        const wristPos = new THREE.Vector3();
+        wristFlange.getWorldPosition(wristPos);
+        const dispEE = document.getElementById('dispEE');
+        if (dispEE) {
+          dispEE.innerText = `[${wristPos.x.toFixed(2)}, ${wristPos.y.toFixed(2)}, ${wristPos.z.toFixed(2)}]m`;
+        }
+      }
+
+      const dispStatus = document.getElementById('dispStatus');
+      if (dispStatus) {
+        dispStatus.innerText = phaseText;
       }
 
       if (renderer && scene && camera) {
