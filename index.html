@@ -7,7 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
     body { font-family: 'Inter', sans-serif; background-color: #070a11; color: #f1f5f9; margin: 0; overflow-x: hidden; }
@@ -47,7 +46,7 @@
         Franka Emika Panda Industrial 7-DOF Robot Arm
       </h1>
       <p class="text-xs sm:text-sm text-slate-400">
-        High-fidelity 3D CAD visualization, Robotiq 2F-85 parallel gripper, analytic 7-DOF IK, and real-world hardware driver interface.
+        High-fidelity 3D CAD visualization, Robotiq parallel gripper, analytic 7-DOF IK, and real hardware ROS2 driver interface.
       </p>
     </div>
 
@@ -74,7 +73,7 @@
         <div class="card-panel rounded-xl p-4 space-y-3 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="font-bold text-slate-300 uppercase tracking-wider">7-DOF Joint Actuators</h3>
-            <span id="ikStatus" class="text-emerald-400 text-[11px] font-semibold">IK Solved</span>
+            <span id="ikStatus" class="text-emerald-400 text-[11px] font-semibold">IK Active</span>
           </div>
 
           <div class="space-y-3">
@@ -152,7 +151,7 @@
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <h2 class="text-sm font-bold text-white">3D Industrial CAD Viewport</h2>
-            <p class="text-xs text-slate-400">High-Fidelity CAD representation (Left-click drag to rotate camera, scroll to zoom)</p>
+            <p class="text-xs text-slate-400">Interactive 3D Viewport (Drag mouse to rotate, scroll to zoom)</p>
           </div>
           
           <div class="flex items-center gap-2 font-mono text-xs">
@@ -167,7 +166,7 @@
           <div id="threejs-container" class="w-full h-full"></div>
           
           <!-- Viewport Overlay Info -->
-          <div class="absolute bottom-3 left-3 bg-[#070a11]/90 backdrop-blur px-3 py-2 rounded border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5">
+          <div class="absolute bottom-3 left-3 bg-[#070a11]/90 backdrop-blur px-3 py-2 rounded border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5 pointer-events-none">
             <div>Robot Model: <span class="text-slate-100 font-bold">Franka Emika Panda (7-DOF)</span></div>
             <div>End-Effector Pose: <span id="dispEE" class="text-blue-400">[0.35, 0.45, 0.28]m</span></div>
             <div>Control Mode: <span id="dispControlMode" class="text-emerald-400 font-semibold">Manual User Control</span></div>
@@ -196,243 +195,224 @@
 
   </main>
 
-  <!-- 3D Simulation Script with High-Fidelity CAD Geometry -->
+  <!-- Self-Contained 3D Engine Script -->
   <script>
-    let scene, camera, renderer, controls;
-    let armBase, link1, link2, link3, link4, link5, link6, wristFlange, fingerLeft, fingerRight;
-    let targetMesh, payloadMesh;
+    let scene, camera, renderer;
+    let armBase, link1, link2, link3, link4, link5, wristFlange, fingerLeft, fingerRight;
+    let payloadMesh, targetMesh;
 
     let isAutoRunning = false;
     let autoStep = 0;
-    let currentTask = 'pick';
     let isPayloadAttached = false;
+
+    // Mouse camera rotation state variables
+    let isMouseDown = false;
+    let mouseX = 0, mouseY = 0;
+    let cameraAngleX = 0.8;
+    let cameraAngleY = 0.6;
+    let cameraDistance = 3.2;
 
     function init3D() {
       const container = document.getElementById('threejs-container');
-      const width = container.clientWidth;
-      const height = container.clientHeight;
+      const width = Math.max(container.clientWidth, 400);
+      const height = Math.max(container.clientHeight, 400);
 
-      // Scene setup
+      // 1. Scene
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x030712);
-      scene.fog = new THREE.FogExp2(0x030712, 0.04);
+      scene.background = new THREE.Color(0x070a11);
+      scene.fog = new THREE.FogExp2(0x070a11, 0.03);
 
-      // Camera
-      camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-      camera.position.set(2.2, 1.8, 2.5);
+      // 2. Camera
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      updateCameraPosition();
 
-      // Renderer
+      // 3. Renderer
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
       container.appendChild(renderer.domElement);
 
-      // Controls
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.target.set(0, 0.6, 0);
-
-      // Lighting Setup for Metallic CAD Finish
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      // 4. Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
       scene.add(ambientLight);
 
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-      mainLight.position.set(4, 6, 3);
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.4);
+      mainLight.position.set(4, 6, 4);
       mainLight.castShadow = true;
-      mainLight.shadow.mapSize.width = 2048;
-      mainLight.shadow.mapSize.height = 2048;
       scene.add(mainLight);
 
-      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
-      fillLight.position.set(-4, 3, -2);
-      scene.add(fillLight);
+      const blueLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
+      blueLight.position.set(-4, 3, -2);
+      scene.add(blueLight);
 
-      // Industrial Floor Grid
-      const grid = new THREE.GridHelper(10, 20, 0x334155, 0x1e293b);
+      // 5. Floor Grid
+      const grid = new THREE.GridHelper(12, 24, 0x334155, 0x1e293b);
       grid.position.y = 0;
       scene.add(grid);
 
-      // Stainless Steel Worktable
+      // 6. Stainless Steel Worktable
       const tableGroup = new THREE.Group();
-      const topGeo = new THREE.BoxGeometry(1.6, 0.08, 1.0);
-      const topMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.3 });
+      const topGeo = new THREE.BoxGeometry(1.8, 0.08, 1.2);
+      const topMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
       const tableTop = new THREE.Mesh(topGeo, topMat);
       tableTop.position.set(0, 0.5, 0);
       tableTop.receiveShadow = true;
       tableTop.castShadow = true;
       tableGroup.add(tableTop);
 
-      // Steel Legs
-      const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5, 16);
+      const legGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.5, 16);
       const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-      [[-0.7, 0.25, -0.4], [0.7, 0.25, -0.4], [-0.7, 0.25, 0.4], [0.7, 0.25, 0.4]].forEach(pos => {
+      [[-0.8, 0.25, -0.5], [0.8, 0.25, -0.5], [-0.8, 0.25, 0.5], [0.8, 0.25, 0.5]].forEach(pos => {
         const leg = new THREE.Mesh(legGeo, legMat);
         leg.position.set(...pos);
         tableGroup.add(leg);
       });
       scene.add(tableGroup);
 
-      // Materials for Franka Emika Panda CAD (White Body, Black Accent, Blue Status Ring)
+      // Materials for Franka Panda CAD
       const matPandaWhite = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.1 });
       const matPandaBlack = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.7 });
-      const matMetallicChrome = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
-      const matLedBlue = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const matChrome = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.9, roughness: 0.1 });
+      const matLedHalo = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
 
-      // --- BUILD REALISTIC FRANKA PANDA 7-DOF CAD ---
+      // --- BUILD FRANKA PANDA 7-DOF CAD ---
+      armBase = new THREE.Group();
+      armBase.position.set(-0.5, 0.54, 0);
 
-      // Base Mounting Flange
-      const baseGroup = new THREE.Group();
-      baseGroup.position.set(-0.4, 0.54, 0);
-
-      const baseCylGeo = new THREE.CylinderGeometry(0.14, 0.16, 0.1, 32);
-      const baseMesh = new THREE.Mesh(baseCylGeo, matPandaBlack);
+      // Base Pedestal
+      const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.1, 32), matPandaBlack);
       baseMesh.castShadow = true;
-      baseGroup.add(baseMesh);
+      armBase.add(baseMesh);
 
-      // Status Ring LED Halo
-      const ledGeo = new THREE.TorusGeometry(0.142, 0.008, 16, 32);
-      const ledMesh = new THREE.Mesh(ledGeo, matLedBlue);
-      ledMesh.rotation.x = Math.PI / 2;
-      ledMesh.position.y = 0.05;
-      baseGroup.add(ledMesh);
+      // Halo LED Ring
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(0.152, 0.008, 16, 32), matLedHalo);
+      halo.rotation.x = Math.PI / 2; halo.position.y = 0.05;
+      armBase.add(halo);
 
-      scene.add(baseGroup);
-      armBase = baseGroup;
+      scene.add(armBase);
 
-      // Link 1 (Shoulder Base Yaw)
+      // Link 1 (Base Yaw)
       link1 = new THREE.Group();
       link1.position.y = 0.05;
-      baseGroup.add(link1);
-
-      const l1HousingGeo = new THREE.CylinderGeometry(0.12, 0.13, 0.18, 32);
-      const l1Housing = new THREE.Mesh(l1HousingGeo, matPandaWhite);
-      l1Housing.position.y = 0.09;
-      l1Housing.castShadow = true;
-      link1.add(l1Housing);
+      armBase.add(link1);
+      const l1Mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.13, 0.18, 32), matPandaWhite);
+      l1Mesh.position.y = 0.09; l1Mesh.castShadow = true;
+      link1.add(l1Mesh);
 
       // Link 2 (Shoulder Pitch)
       link2 = new THREE.Group();
       link2.position.set(0, 0.18, 0);
       link1.add(link2);
-
-      const l2CapGeo = new THREE.SphereGeometry(0.11, 24, 24);
-      const l2Cap = new THREE.Mesh(l2CapGeo, matPandaBlack);
-      l2Cap.castShadow = true;
-      link2.add(l2Cap);
-
-      const l2BodyGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.32, 24);
-      l2BodyGeo.translate(0, 0.16, 0);
-      const l2Body = new THREE.Mesh(l2BodyGeo, matPandaWhite);
-      l2Body.castShadow = true;
-      link2.add(l2Body);
+      const l2Cap = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 24), matPandaBlack);
+      l2Cap.castShadow = true; link2.add(l2Cap);
+      const l2Body = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.32, 24), matPandaWhite);
+      l2Body.position.y = 0.16; l2Body.castShadow = true; link2.add(l2Body);
 
       // Link 3 (Elbow Yaw)
       link3 = new THREE.Group();
       link3.position.set(0, 0.32, 0);
       link2.add(link3);
-
-      const l3JointGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.14, 24);
-      l3JointGeo.rotation.z = Math.PI / 2;
-      const l3Joint = new THREE.Mesh(l3JointGeo, matPandaBlack);
-      l3Joint.castShadow = true;
-      link3.add(l3Joint);
+      const l3Joint = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.14, 24), matPandaBlack);
+      l3Joint.rotation.z = Math.PI / 2; l3Joint.castShadow = true; link3.add(l3Joint);
 
       // Link 4 (Elbow Pitch)
       link4 = new THREE.Group();
       link4.position.set(0, 0.08, 0);
       link3.add(link4);
-
-      const l4BodyGeo = new THREE.CylinderGeometry(0.075, 0.065, 0.30, 24);
-      l4BodyGeo.translate(0, 0.15, 0);
-      const l4Body = new THREE.Mesh(l4BodyGeo, matPandaWhite);
-      l4Body.castShadow = true;
-      link4.add(l4Body);
+      const l4Body = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.30, 24), matPandaWhite);
+      l4Body.position.y = 0.15; l4Body.castShadow = true; link4.add(l4Body);
 
       // Link 5 (Wrist Roll)
       link5 = new THREE.Group();
       link5.position.set(0, 0.30, 0);
       link4.add(link5);
+      const l5Joint = new THREE.Mesh(new THREE.SphereGeometry(0.07, 20, 20), matPandaBlack);
+      l5Joint.castShadow = true; link5.add(l5Joint);
+      const l5Body = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.18, 20), matPandaWhite);
+      l5Body.position.y = 0.09; l5Body.castShadow = true; link5.add(l5Body);
 
-      const l5JointGeo = new THREE.SphereGeometry(0.07, 20, 20);
-      const l5Joint = new THREE.Mesh(l5JointGeo, matPandaBlack);
-      l5Joint.castShadow = true;
-      link5.add(l5Joint);
-
-      const l5BodyGeo = new THREE.CylinderGeometry(0.055, 0.05, 0.18, 20);
-      l5BodyGeo.translate(0, 0.09, 0);
-      const l5Body = new THREE.Mesh(l5BodyGeo, matPandaWhite);
-      l5Body.castShadow = true;
-      link5.add(l5Body);
-
-      // Wrist Flange & Robotiq Style Parallel Gripper
+      // Wrist Flange & Parallel Gripper
       wristFlange = new THREE.Group();
       wristFlange.position.set(0, 0.18, 0);
       link5.add(wristFlange);
 
-      const flangeGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.05, 20);
-      const flangeMesh = new THREE.Mesh(flangeGeo, matMetallicChrome);
+      const flangeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.05, 20), matChrome);
       wristFlange.add(flangeMesh);
 
-      // Gripper Main Housing
-      const gripHouseGeo = new THREE.BoxGeometry(0.12, 0.06, 0.07);
-      gripHouseGeo.translate(0, 0.04, 0);
-      const gripHouse = new THREE.Mesh(gripHouseGeo, matPandaBlack);
-      gripHouse.castShadow = true;
-      wristFlange.add(gripHouse);
+      const gripHouse = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.07), matPandaBlack);
+      gripHouse.position.y = 0.04; gripHouse.castShadow = true; wristFlange.add(gripHouse);
 
-      // Gripper Parallel Fingers
       const fingerGeo = new THREE.BoxGeometry(0.018, 0.09, 0.025);
       fingerGeo.translate(0, 0.045, 0);
 
-      fingerLeft = new THREE.Mesh(fingerGeo, matMetallicChrome);
-      fingerLeft.position.set(-0.04, 0.07, 0);
-      fingerLeft.castShadow = true;
-      wristFlange.add(fingerLeft);
+      fingerLeft = new THREE.Mesh(fingerGeo, matChrome);
+      fingerLeft.position.set(-0.04, 0.07, 0); fingerLeft.castShadow = true; wristFlange.add(fingerLeft);
 
-      fingerRight = new THREE.Mesh(fingerGeo, matMetallicChrome);
-      fingerRight.position.set(0.04, 0.07, 0);
-      fingerRight.castShadow = true;
-      wristFlange.add(fingerRight);
+      fingerRight = new THREE.Mesh(fingerGeo, matChrome);
+      fingerRight.position.set(0.04, 0.07, 0); fingerRight.castShadow = true; wristFlange.add(fingerRight);
 
-      // Rubber Grip Pads
-      const padGeo = new THREE.BoxGeometry(0.005, 0.05, 0.02);
-      const matRubber = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.9 });
-      const padL = new THREE.Mesh(padGeo, matRubber); padL.position.set(0.009, 0.05, 0); fingerLeft.add(padL);
-      const padR = new THREE.Mesh(padGeo, matRubber); padR.position.set(-0.009, 0.05, 0); fingerRight.add(padR);
-
-      // Payload Object (Green Industrial Cube)
-      const payloadGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
-      const payloadMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.2 });
-      payloadMesh = new THREE.Mesh(payloadGeo, payloadMat);
+      // Green Industrial Payload Block
+      payloadMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.08, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.2 })
+      );
       payloadMesh.position.set(0.0, 0.58, 0.2);
       payloadMesh.castShadow = true;
       scene.add(payloadMesh);
 
-      // Target Target Circle (Cyan Glow)
-      const targetGeo = new THREE.RingGeometry(0.07, 0.09, 32);
-      const targetMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-      targetMesh = new THREE.Mesh(targetGeo, targetMat);
+      // Cyan Target Ring Marker
+      targetMesh = new THREE.Mesh(
+        new THREE.RingGeometry(0.07, 0.09, 32),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide })
+      );
       targetMesh.rotation.x = Math.PI / 2;
       targetMesh.position.set(0.4, 0.541, -0.15);
       scene.add(targetMesh);
+
+      // Mouse drag event listeners on canvas container
+      container.addEventListener('mousedown', (e) => { isMouseDown = true; mouseX = e.clientX; mouseY = e.clientY; });
+      window.addEventListener('mouseup', () => { isMouseDown = false; });
+      window.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        const dx = e.clientX - mouseX;
+        const dy = e.clientY - mouseY;
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        cameraAngleX -= dx * 0.008;
+        cameraAngleY = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, cameraAngleY + dy * 0.008));
+        updateCameraPosition();
+      });
+      container.addEventListener('wheel', (e) => {
+        cameraDistance = Math.max(1.5, Math.min(6.0, cameraDistance + e.deltaY * 0.003));
+        updateCameraPosition();
+      });
 
       window.addEventListener('resize', onWindowResize);
       updateArmAngles();
       animate();
     }
 
-    function onWindowResize() {
-      const container = document.getElementById('threejs-container');
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+    function updateCameraPosition() {
+      if (!camera) return;
+      camera.position.x = cameraDistance * Math.sin(cameraAngleX) * Math.cos(cameraAngleY);
+      camera.position.y = cameraDistance * Math.sin(cameraAngleY) + 0.5;
+      camera.position.z = cameraDistance * Math.cos(cameraAngleX) * Math.cos(cameraAngleY);
+      camera.lookAt(0, 0.6, 0);
     }
 
-    // Joint Sliders Handling
+    function onWindowResize() {
+      const container = document.getElementById('threejs-container');
+      if (!container || !renderer || !camera) return;
+      const w = container.clientWidth || 800;
+      const h = container.clientHeight || 520;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    // Sliders Event Handlers
     const sJ1 = document.getElementById('sliderJ1');
     const sJ2 = document.getElementById('sliderJ2');
     const sJ3 = document.getElementById('sliderJ3');
@@ -466,6 +446,7 @@
     }
 
     function updateArmAngles() {
+      if (!link1) return;
       const rad1 = (parseFloat(sJ1.value) * Math.PI) / 180;
       const rad2 = (parseFloat(sJ2.value) * Math.PI) / 180;
       const rad3 = (parseFloat(sJ3.value) * Math.PI) / 180;
@@ -484,12 +465,10 @@
       document.getElementById('valJ4').innerText = sJ4.value + '°';
       document.getElementById('valJ5').innerText = sJ5.value + '°';
 
-      // Live End-Effector Position calculation
       const wristWorld = new THREE.Vector3();
       wristFlange.getWorldPosition(wristWorld);
       document.getElementById('dispEE').innerText = `[${wristWorld.x.toFixed(2)}, ${wristWorld.y.toFixed(2)}, ${wristWorld.z.toFixed(2)}]m`;
 
-      // Update Payload position if attached
       if (isPayloadAttached) {
         payloadMesh.position.copy(wristWorld);
         payloadMesh.position.y += 0.05;
@@ -543,7 +522,6 @@
 
     function selectTask(task) {
       disableAutoRun();
-      currentTask = task;
       if (task === 'pick') {
         document.getElementById('modePickBtn').className = "px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded transition shadow";
         document.getElementById('modeReachBtn').className = "px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition";
@@ -624,7 +602,6 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      controls.update();
 
       if (isAutoRunning) {
         autoStep += 0.02;
@@ -639,10 +616,17 @@
         else if (Math.sin(autoStep) < -0.8) triggerGrasp(false);
       }
 
-      renderer.render(scene, camera);
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
     }
 
-    init3D();
+    // Initialize 3D Engine safely on window load & DOM load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init3D);
+    } else {
+      init3D();
+    }
   </script>
 </body>
 </html>
