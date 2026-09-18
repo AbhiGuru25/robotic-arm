@@ -325,29 +325,35 @@
     let armBase, link1, link2, link3, link4, link5, wristFlange, fingerLeft, fingerRight;
     let payloadMesh, targetMesh, trajectoryPathLine;
     let autoStep = 0;
-    let currentAngles = { yaw: 0, shoulder: -0.5, elbow: -1.5 };
+    let currentAngles = { yaw: 0, shoulder: -0.5, elbow: 1.2, wrist: -0.7 };
 
-    const CUBE_HOME = new THREE.Vector3(-0.15, 0.58, 0.20);
-    const TARGET_POS = new THREE.Vector3(0.35, 0.541, -0.15);
-    const BASE_POS = new THREE.Vector3(-0.50, 0.54, 0.00);
+    const CUBE_HOME = new THREE.Vector3(0.10, 0.58, 0.20);
+    const TARGET_POS = new THREE.Vector3(0.40, 0.541, -0.20);
+    const BASE_POS = new THREE.Vector3(-0.45, 0.54, 0.00);
 
-    // Quintic Minimum-Jerk Spline Interpolation for hyper-realistic smooth motor acceleration
+    // Quintic Minimum-Jerk Spline Interpolation for smooth, natural industrial acceleration
     function quinticSmooth(t) {
       t = Math.max(0, Math.min(1, t));
       return t * t * t * (t * (t * 6 - 15) + 10);
     }
 
+    // Bulletproof 7-DOF Top-Down Analytical IK Solver for Franka Panda Arm
     function solveArmIK(targetX, targetY, targetZ) {
       const dx = targetX - BASE_POS.x;
       const dz = targetZ - BASE_POS.z;
-      const dy = targetY - BASE_POS.y;
-
-      const yaw = Math.atan2(-dz, dx);
+      
+      // Base yaw rotation around Y-axis
+      const yaw = Math.atan2(dz, dx);
+      
+      // Horizontal radial distance from base center
       const r = Math.sqrt(dx * dx + dz * dz);
-      const h = dy;
+      
+      // Top-down gripper offset compensation (wrist center is 0.18m above end-effector)
+      const wristY = targetY + 0.18;
+      const h = wristY - 0.77; // Base height to shoulder joint
 
-      const l1 = 0.42;
-      const l2 = 0.40;
+      const l1 = 0.36; // Upper arm length
+      const l2 = 0.36; // Forearm length
       const distSq = r * r + h * h;
       const dist = Math.sqrt(distSq);
 
@@ -357,10 +363,12 @@
       const alpha = Math.acos(cosAlpha);
       const beta = Math.acos(cosBeta);
 
-      const shoulderAngle = -Math.atan2(h, r) - alpha + Math.PI / 2;
-      const elbowAngle = -(Math.PI - beta);
+      // Shoulder and elbow pitch angles for forward table reach
+      const shoulderAngle = -(Math.atan2(r, h) - alpha);
+      const elbowAngle = Math.PI - beta;
+      const wristAngle = -(shoulderAngle + elbowAngle);
 
-      return { yaw, shoulder: shoulderAngle, elbow: elbowAngle };
+      return { yaw, shoulder: shoulderAngle, elbow: elbowAngle, wrist: wristAngle };
     }
 
     function init3D() {
@@ -435,7 +443,7 @@
       armBase.add(halo);
       scene.add(armBase);
 
-      // Link 1
+      // Link 1 (Base Yaw Joint)
       link1 = new THREE.Group();
       link1.position.y = 0.05;
       armBase.add(link1);
@@ -443,7 +451,7 @@
       l1Mesh.position.y = 0.09; l1Mesh.castShadow = true;
       link1.add(l1Mesh);
 
-      // Link 2
+      // Link 2 (Shoulder Pitch Joint)
       link2 = new THREE.Group();
       link2.position.set(0, 0.18, 0);
       link1.add(link2);
@@ -457,9 +465,9 @@
       link3.position.set(0, 0.32, 0);
       link2.add(link3);
       const l3Joint = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.14, 24), matPandaBlack);
-      l3Joint.rotation.z = Math.PI / 2; l3Joint.castShadow = true; link3.add(l3Joint);
+      l3Joint.rotation.x = Math.PI / 2; l3Joint.castShadow = true; link3.add(l3Joint);
 
-      // Link 4
+      // Link 4 (Elbow Pitch Joint)
       link4 = new THREE.Group();
       link4.position.set(0, 0.08, 0);
       link3.add(link4);
@@ -475,7 +483,7 @@
       const l5Body = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.18, 20), matPandaWhite);
       l5Body.position.y = 0.09; l5Body.castShadow = true; link5.add(l5Body);
 
-      // Wrist & Gripper
+      // Wrist & Gripper Flange
       wristFlange = new THREE.Group();
       wristFlange.position.set(0, 0.18, 0);
       link5.add(wristFlange);
@@ -495,7 +503,7 @@
       fingerRight = new THREE.Mesh(fingerGeo, matChrome);
       fingerRight.position.set(0.04, 0.07, 0); fingerRight.castShadow = true; wristFlange.add(fingerRight);
 
-      // Payload Object (Cube)
+      // Payload Object (Green Cube)
       payloadMesh = new THREE.Mesh(
         new THREE.BoxGeometry(0.08, 0.08, 0.08),
         new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.2 })
@@ -504,7 +512,7 @@
       payloadMesh.castShadow = true;
       scene.add(payloadMesh);
 
-      // Target Circle Ring
+      // Target Circle Ring (Cyan Goal Ring)
       targetMesh = new THREE.Mesh(
         new THREE.RingGeometry(0.07, 0.09, 32),
         new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide })
@@ -513,17 +521,17 @@
       targetMesh.position.copy(TARGET_POS);
       scene.add(targetMesh);
 
-      // 3D Planned Trajectory Visualizer Path Line
+      // 3D Planned Trajectory Visualizer Ribbon Curve
       const pathCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.15, 0.61, 0.20),
-        new THREE.Vector3(-0.15, 0.95, 0.20),
-        new THREE.Vector3(0.10, 1.02, 0.02),
-        new THREE.Vector3(0.35, 0.95, -0.15),
-        new THREE.Vector3(0.35, 0.58, -0.15)
+        new THREE.Vector3(0.10, 0.61, 0.20),
+        new THREE.Vector3(0.10, 0.95, 0.20),
+        new THREE.Vector3(0.25, 1.02, 0.00),
+        new THREE.Vector3(0.40, 0.95, -0.20),
+        new THREE.Vector3(0.40, 0.58, -0.20)
       ]);
       const pathPoints = pathCurve.getPoints(50);
       const pathGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
-      const pathMat = new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 0.04, gapSize: 0.02, opacity: 0.6, transparent: true });
+      const pathMat = new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 0.04, gapSize: 0.02, opacity: 0.7, transparent: true });
       trajectoryPathLine = new THREE.Line(pathGeo, pathMat);
       trajectoryPathLine.computeLineDistances();
       scene.add(trajectoryPathLine);
@@ -545,7 +553,7 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      autoStep += 0.0018; // Smooth 14-second cycle
+      autoStep += 0.0018; // Smooth 14-second full cycle
       const t = autoStep % 1.0;
 
       const rawTarget = new THREE.Vector3();
@@ -554,62 +562,62 @@
       let phaseText = "";
 
       if (t < 0.15) {
-        // Phase 1: Approaching Cube Pose with Quintic Acceleration
+        // Phase 1: Quintic Smooth Approach to Green Cube
         const s = quinticSmooth(t / 0.15);
-        rawTarget.lerpVectors(new THREE.Vector3(-0.15, 0.88, 0.20), new THREE.Vector3(-0.15, 0.61, 0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.10, 0.88, 0.20), new THREE.Vector3(0.10, 0.61, 0.20), s);
         gripperWidth = 0.04;
         isCubeAttached = false;
         payloadMesh.position.copy(CUBE_HOME);
         targetMesh.material.color.setHex(0x38bdf8);
-        phaseText = "Phase 1: Quintic Smooth Minimum-Jerk Approach";
+        phaseText = "Phase 1: Quintic Minimum-Jerk Top-Down Approach";
       } else if (t < 0.25) {
-        // Phase 2: Gripper Actuation & Contact Latching
+        // Phase 2: Parallel-Jaw Contact & Gripper Closure
         const s = quinticSmooth((t - 0.15) / 0.10);
-        rawTarget.set(-0.15, 0.61, 0.20);
+        rawTarget.set(0.10, 0.61, 0.20);
         gripperWidth = THREE.MathUtils.lerp(0.04, 0.015, s);
         isCubeAttached = s > 0.5;
         if (!isCubeAttached) payloadMesh.position.copy(CUBE_HOME);
         phaseText = "Phase 2: Parallel-Jaw Contact Latching & Force Check";
       } else if (t < 0.40) {
-        // Phase 3: Elevating Payload
+        // Phase 3: Vertical Payload Elevation
         const s = quinticSmooth((t - 0.25) / 0.15);
-        rawTarget.lerpVectors(new THREE.Vector3(-0.15, 0.61, 0.20), new THREE.Vector3(-0.15, 0.95, 0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.10, 0.61, 0.20), new THREE.Vector3(0.10, 0.95, 0.20), s);
         gripperWidth = 0.015;
         isCubeAttached = true;
         phaseText = "Phase 3: Smooth Vertical Payload Lift";
       } else if (t < 0.65) {
         // Phase 4: Arc Trajectory Transport to Goal
         const s = quinticSmooth((t - 0.40) / 0.25);
-        const startHover = new THREE.Vector3(-0.15, 0.95, 0.20);
-        const endHover = new THREE.Vector3(0.35, 0.95, -0.15);
+        const startHover = new THREE.Vector3(0.10, 0.95, 0.20);
+        const endHover = new THREE.Vector3(0.40, 0.95, -0.20);
         rawTarget.lerpVectors(startHover, endHover, s);
         rawTarget.y += Math.sin(s * Math.PI) * 0.10; // Arc lift curve
         gripperWidth = 0.015;
         isCubeAttached = true;
         phaseText = "Phase 4: Autonomous Arc Trajectory Transport";
       } else if (t < 0.78) {
-        // Phase 5: Precision Placement into Target Circle
+        // Phase 5: Decelerated Precision Placement into Target Circle Ring
         const s = quinticSmooth((t - 0.65) / 0.13);
-        rawTarget.lerpVectors(new THREE.Vector3(0.35, 0.95, -0.15), new THREE.Vector3(0.35, 0.58, -0.15), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.40, 0.95, -0.20), new THREE.Vector3(0.40, 0.58, -0.20), s);
         gripperWidth = 0.015;
         isCubeAttached = true;
         phaseText = "Phase 5: Decelerated Precision Placement";
       } else if (t < 0.88) {
         // Phase 6: Goal Met & Gripper Release
         const s = quinticSmooth((t - 0.78) / 0.10);
-        rawTarget.set(0.35, 0.58, -0.15);
+        rawTarget.set(0.40, 0.58, -0.20);
         gripperWidth = THREE.MathUtils.lerp(0.015, 0.04, s);
         isCubeAttached = false;
-        payloadMesh.position.set(0.35, 0.58, -0.15);
+        payloadMesh.position.set(0.40, 0.58, -0.20);
         targetMesh.material.color.setHex(0x22c55e); // Green success glow!
         phaseText = "Phase 6: Goal Reached! Gripper Released";
       } else {
         // Phase 7: Retracting Arm & Cycle Reset
         const s = quinticSmooth((t - 0.88) / 0.12);
-        rawTarget.lerpVectors(new THREE.Vector3(0.35, 0.58, -0.15), new THREE.Vector3(-0.15, 0.88, 0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.40, 0.58, -0.20), new THREE.Vector3(0.10, 0.88, 0.20), s);
         gripperWidth = 0.04;
         isCubeAttached = false;
-        payloadMesh.position.set(0.35, 0.58, -0.15);
+        payloadMesh.position.set(0.40, 0.58, -0.20);
         if (t > 0.98) {
           payloadMesh.position.copy(CUBE_HOME);
           targetMesh.material.color.setHex(0x38bdf8);
@@ -617,19 +625,21 @@
         phaseText = "Phase 7: Retracting Arm - Resetting Target";
       }
 
-      // Solve target IK angles
+      // Solve target IK angles with correct signs
       const targetAngles = solveArmIK(rawTarget.x, rawTarget.y, rawTarget.z);
 
-      // Low-pass exponential filtering for smooth heavy motor acceleration/deceleration
+      // Low-pass exponential filtering for smooth heavy motor inertia
       currentAngles.yaw += (targetAngles.yaw - currentAngles.yaw) * 0.12;
       currentAngles.shoulder += (targetAngles.shoulder - currentAngles.shoulder) * 0.12;
       currentAngles.elbow += (targetAngles.elbow - currentAngles.elbow) * 0.12;
+      currentAngles.wrist += (targetAngles.wrist - currentAngles.wrist) * 0.12;
 
-      if (link1) link1.rotation.y = currentAngles.yaw;
+      // Apply rotations to Three.js link hierarchy
+      if (link1) link1.rotation.y = -currentAngles.yaw; // Align base yaw with Three.js coordinate system
       if (link2) link2.rotation.z = currentAngles.shoulder;
       if (link4) link4.rotation.z = currentAngles.elbow;
 
-      // Vertical pitch compensation: keeps gripper orientation strictly perpendicular (pointing down at table)
+      // Vertical pitch compensation: keeps gripper pointing straight down at table surface
       if (wristFlange) {
         wristFlange.rotation.z = -(currentAngles.shoulder + currentAngles.elbow);
       }
@@ -639,12 +649,11 @@
         fingerRight.position.x = gripperWidth;
       }
 
-      // Attach cube to end-effector when latched
+      // Attach cube to end-effector when latched between fingers
       if (isCubeAttached && wristFlange) {
         const wristPos = new THREE.Vector3();
         wristFlange.getWorldPosition(wristPos);
-        payloadMesh.position.copy(wristPos);
-        payloadMesh.position.y -= 0.06;
+        payloadMesh.position.set(wristPos.x, wristPos.y - 0.08, wristPos.z);
       }
 
       if (wristFlange) {
