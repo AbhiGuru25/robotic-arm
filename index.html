@@ -323,13 +323,19 @@
   <script>
     let scene, camera, renderer;
     let armBase, link1, link2, link3, link4, link5, wristFlange, fingerLeft, fingerRight;
-    let payloadMesh, targetMesh;
+    let payloadMesh, targetMesh, trajectoryPathLine;
     let autoStep = 0;
-    let cycleCount = 1;
+    let currentAngles = { yaw: 0, shoulder: -0.5, elbow: -1.5 };
 
     const CUBE_HOME = new THREE.Vector3(-0.15, 0.58, 0.20);
     const TARGET_POS = new THREE.Vector3(0.35, 0.541, -0.15);
     const BASE_POS = new THREE.Vector3(-0.50, 0.54, 0.00);
+
+    // Quintic Minimum-Jerk Spline Interpolation for hyper-realistic smooth motor acceleration
+    function quinticSmooth(t) {
+      t = Math.max(0, Math.min(1, t));
+      return t * t * t * (t * (t * 6 - 15) + 10);
+    }
 
     function solveArmIK(targetX, targetY, targetZ) {
       const dx = targetX - BASE_POS.x;
@@ -507,6 +513,21 @@
       targetMesh.position.copy(TARGET_POS);
       scene.add(targetMesh);
 
+      // 3D Planned Trajectory Visualizer Path Line
+      const pathCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.15, 0.61, 0.20),
+        new THREE.Vector3(-0.15, 0.95, 0.20),
+        new THREE.Vector3(0.10, 1.02, 0.02),
+        new THREE.Vector3(0.35, 0.95, -0.15),
+        new THREE.Vector3(0.35, 0.58, -0.15)
+      ]);
+      const pathPoints = pathCurve.getPoints(50);
+      const pathGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
+      const pathMat = new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 0.04, gapSize: 0.02, opacity: 0.6, transparent: true });
+      trajectoryPathLine = new THREE.Line(pathGeo, pathMat);
+      trajectoryPathLine.computeLineDistances();
+      scene.add(trajectoryPathLine);
+
       window.addEventListener('resize', onWindowResize);
       animate();
     }
@@ -524,68 +545,68 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      autoStep += 0.0022; // Smooth 12s cycle speed
+      autoStep += 0.0018; // Smooth 14-second cycle
       const t = autoStep % 1.0;
 
-      const currentTarget = new THREE.Vector3();
+      const rawTarget = new THREE.Vector3();
       let gripperWidth = 0.04;
       let isCubeAttached = false;
       let phaseText = "";
 
       if (t < 0.15) {
-        // Phase 1: Hover above Cube
-        const p = t / 0.15;
-        currentTarget.lerpVectors(new THREE.Vector3(-0.15, 0.85, 0.20), new THREE.Vector3(-0.15, 0.68, 0.20), p);
+        // Phase 1: Approaching Cube Pose with Quintic Acceleration
+        const s = quinticSmooth(t / 0.15);
+        rawTarget.lerpVectors(new THREE.Vector3(-0.15, 0.88, 0.20), new THREE.Vector3(-0.15, 0.61, 0.20), s);
         gripperWidth = 0.04;
         isCubeAttached = false;
         payloadMesh.position.copy(CUBE_HOME);
         targetMesh.material.color.setHex(0x38bdf8);
-        phaseText = "Phase 1: Approaching Target Cube Pose";
+        phaseText = "Phase 1: Quintic Smooth Minimum-Jerk Approach";
       } else if (t < 0.25) {
-        // Phase 2: Touch Cube & Close Gripper
-        const p = (t - 0.15) / 0.10;
-        currentTarget.set(-0.15, 0.60, 0.20);
-        gripperWidth = THREE.MathUtils.lerp(0.04, 0.015, p);
-        isCubeAttached = p > 0.6;
+        // Phase 2: Gripper Actuation & Contact Latching
+        const s = quinticSmooth((t - 0.15) / 0.10);
+        rawTarget.set(-0.15, 0.61, 0.20);
+        gripperWidth = THREE.MathUtils.lerp(0.04, 0.015, s);
+        isCubeAttached = s > 0.5;
         if (!isCubeAttached) payloadMesh.position.copy(CUBE_HOME);
-        phaseText = "Phase 2: Gripper Actuation & Contact Latching";
+        phaseText = "Phase 2: Parallel-Jaw Contact Latching & Force Check";
       } else if (t < 0.40) {
-        // Phase 3: Lift Cube up into Air
-        const p = (t - 0.25) / 0.15;
-        currentTarget.lerpVectors(new THREE.Vector3(-0.15, 0.60, 0.20), new THREE.Vector3(-0.15, 0.92, 0.20), p);
+        // Phase 3: Elevating Payload
+        const s = quinticSmooth((t - 0.25) / 0.15);
+        rawTarget.lerpVectors(new THREE.Vector3(-0.15, 0.61, 0.20), new THREE.Vector3(-0.15, 0.95, 0.20), s);
         gripperWidth = 0.015;
         isCubeAttached = true;
-        phaseText = "Phase 3: Elevating Payload (Sparse-Reward Check)";
+        phaseText = "Phase 3: Smooth Vertical Payload Lift";
       } else if (t < 0.65) {
-        // Phase 4: Swing Arm to Target Ring Position
-        const p = (t - 0.40) / 0.25;
-        const startHover = new THREE.Vector3(-0.15, 0.92, 0.20);
-        const endHover = new THREE.Vector3(0.35, 0.92, -0.15);
-        currentTarget.lerpVectors(startHover, endHover, p);
-        currentTarget.y += Math.sin(p * Math.PI) * 0.08; // Arc lift
+        // Phase 4: Arc Trajectory Transport to Goal
+        const s = quinticSmooth((t - 0.40) / 0.25);
+        const startHover = new THREE.Vector3(-0.15, 0.95, 0.20);
+        const endHover = new THREE.Vector3(0.35, 0.95, -0.15);
+        rawTarget.lerpVectors(startHover, endHover, s);
+        rawTarget.y += Math.sin(s * Math.PI) * 0.10; // Arc lift curve
         gripperWidth = 0.015;
         isCubeAttached = true;
-        phaseText = "Phase 4: Autonomous Trajectory Transport to Goal";
+        phaseText = "Phase 4: Autonomous Arc Trajectory Transport";
       } else if (t < 0.78) {
-        // Phase 5: Lower Cube into Target Ring
-        const p = (t - 0.65) / 0.13;
-        currentTarget.lerpVectors(new THREE.Vector3(0.35, 0.92, -0.15), new THREE.Vector3(0.35, 0.58, -0.15), p);
+        // Phase 5: Precision Placement into Target Circle
+        const s = quinticSmooth((t - 0.65) / 0.13);
+        rawTarget.lerpVectors(new THREE.Vector3(0.35, 0.95, -0.15), new THREE.Vector3(0.35, 0.58, -0.15), s);
         gripperWidth = 0.015;
         isCubeAttached = true;
-        phaseText = "Phase 5: Precision Placement into Target Circle";
+        phaseText = "Phase 5: Decelerated Precision Placement";
       } else if (t < 0.88) {
-        // Phase 6: Release Gripper & Drop Payload
-        const p = (t - 0.78) / 0.10;
-        currentTarget.set(0.35, 0.58, -0.15);
-        gripperWidth = THREE.MathUtils.lerp(0.015, 0.04, p);
+        // Phase 6: Goal Met & Gripper Release
+        const s = quinticSmooth((t - 0.78) / 0.10);
+        rawTarget.set(0.35, 0.58, -0.15);
+        gripperWidth = THREE.MathUtils.lerp(0.015, 0.04, s);
         isCubeAttached = false;
         payloadMesh.position.set(0.35, 0.58, -0.15);
         targetMesh.material.color.setHex(0x22c55e); // Green success glow!
-        phaseText = "Phase 6: Goal Met! Gripper Released";
+        phaseText = "Phase 6: Goal Reached! Gripper Released";
       } else {
-        // Phase 7: Retract Arm & Reset Cycle
-        const p = (t - 0.88) / 0.12;
-        currentTarget.lerpVectors(new THREE.Vector3(0.35, 0.58, -0.15), new THREE.Vector3(-0.15, 0.85, 0.20), p);
+        // Phase 7: Retracting Arm & Cycle Reset
+        const s = quinticSmooth((t - 0.88) / 0.12);
+        rawTarget.lerpVectors(new THREE.Vector3(0.35, 0.58, -0.15), new THREE.Vector3(-0.15, 0.88, 0.20), s);
         gripperWidth = 0.04;
         isCubeAttached = false;
         payloadMesh.position.set(0.35, 0.58, -0.15);
@@ -593,26 +614,37 @@
           payloadMesh.position.copy(CUBE_HOME);
           targetMesh.material.color.setHex(0x38bdf8);
         }
-        phaseText = "Phase 7: Retracting Arm - Preparing Next Cycle";
+        phaseText = "Phase 7: Retracting Arm - Resetting Target";
       }
 
-      // Solve IK for currentTarget position
-      const ik = solveArmIK(currentTarget.x, currentTarget.y, currentTarget.z);
-      if (link1) link1.rotation.y = ik.yaw;
-      if (link2) link2.rotation.z = ik.shoulder;
-      if (link4) link4.rotation.z = ik.elbow;
+      // Solve target IK angles
+      const targetAngles = solveArmIK(rawTarget.x, rawTarget.y, rawTarget.z);
+
+      // Low-pass exponential filtering for smooth heavy motor acceleration/deceleration
+      currentAngles.yaw += (targetAngles.yaw - currentAngles.yaw) * 0.12;
+      currentAngles.shoulder += (targetAngles.shoulder - currentAngles.shoulder) * 0.12;
+      currentAngles.elbow += (targetAngles.elbow - currentAngles.elbow) * 0.12;
+
+      if (link1) link1.rotation.y = currentAngles.yaw;
+      if (link2) link2.rotation.z = currentAngles.shoulder;
+      if (link4) link4.rotation.z = currentAngles.elbow;
+
+      // Vertical pitch compensation: keeps gripper orientation strictly perpendicular (pointing down at table)
+      if (wristFlange) {
+        wristFlange.rotation.z = -(currentAngles.shoulder + currentAngles.elbow);
+      }
 
       if (fingerLeft && fingerRight) {
         fingerLeft.position.x = -gripperWidth;
         fingerRight.position.x = gripperWidth;
       }
 
-      // Attach cube to end-effector if latched
+      // Attach cube to end-effector when latched
       if (isCubeAttached && wristFlange) {
         const wristPos = new THREE.Vector3();
         wristFlange.getWorldPosition(wristPos);
         payloadMesh.position.copy(wristPos);
-        payloadMesh.position.y -= 0.05;
+        payloadMesh.position.y -= 0.06;
       }
 
       if (wristFlange) {
