@@ -107,18 +107,23 @@
         <label class="text-xs font-mono text-slate-400 font-semibold uppercase tracking-wider">Natural Language Command Input:</label>
         <div class="flex gap-2">
           <input id="promptInput" type="text" value="Pick up the block and place it on target 3D goal" class="flex-1 bg-[#070a10] border border-slate-700 rounded px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500">
-          <button id="runPromptBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded transition font-mono">
+          <button id="runPromptBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded transition font-mono shadow">
             Execute Command
           </button>
+        </div>
+
+        <!-- Language Status Banner -->
+        <div id="languageStatus" class="p-2 bg-[#070a10] border border-slate-800 rounded font-mono text-[11px] text-emerald-400">
+          ✔ Encoded: "Pick up the block and place it on target 3D goal" &rarr; Goal Vector [x=+0.46, y=+0.13] | Executing Trajectory...
         </div>
 
         <!-- Quick Prompt Preset Pills -->
         <div class="flex flex-wrap gap-2 pt-1 text-[11px] font-mono">
           <span class="text-slate-500 py-0.5">Presets:</span>
-          <button class="preset-btn px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-300">"Pick block and place on target"</button>
-          <button class="preset-btn px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-300">"Reach 3d target location"</button>
-          <button class="preset-btn px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-300">"Push block along table surface"</button>
-          <button class="preset-btn px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-300">"Slide puck to distant goal"</button>
+          <button class="preset-btn px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded text-blue-300 cursor-pointer transition">"Pick block and place on target"</button>
+          <button class="preset-btn px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded text-blue-300 cursor-pointer transition">"Reach 3d target location"</button>
+          <button class="preset-btn px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded text-blue-300 cursor-pointer transition">"Push block along table surface"</button>
+          <button class="preset-btn px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded text-blue-300 cursor-pointer transition">"Slide puck to distant goal"</button>
         </div>
       </div>
 
@@ -154,10 +159,10 @@
       <!-- Controls & Progress -->
       <div class="flex flex-wrap items-center justify-between gap-4 text-xs font-mono pt-1">
         <div class="flex items-center gap-2">
-          <button id="webPlayBtn" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition">
+          <button id="webPlayBtn" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded border border-blue-600 transition shadow">
             Pause
           </button>
-          <button id="webResetBtn" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded border border-slate-800 transition">
+          <button id="webResetBtn" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded border border-slate-800 transition">
             Reset Trajectory
           </button>
         </div>
@@ -339,7 +344,7 @@
 
     function parseAndExecutePrompt(text) {
       const lower = text.toLowerCase();
-      if (lower.includes("reach") || lower.includes("coordinate")) {
+      if (lower.includes("reach") || lower.includes("coordinate") || lower.includes("location")) {
         currentTask = "reach";
       } else if (lower.includes("push") || lower.includes("surface")) {
         currentTask = "push";
@@ -348,6 +353,12 @@
       } else {
         currentTask = "pickandplace";
       }
+      
+      // Force play state & update banner
+      isPlaying = true;
+      document.getElementById('webPlayBtn').innerText = 'Pause';
+      document.getElementById('languageStatus').innerText = `✔ Encoded: "${text}" → Goal Vector [x=+0.46, y=+0.13] | Executing Trajectory...`;
+      
       resetTrajectory();
     }
 
@@ -366,7 +377,11 @@
       document.getElementById('webPlayBtn').innerText = isPlaying ? 'Pause' : 'Play';
     };
 
-    document.getElementById('webResetBtn').onclick = resetTrajectory;
+    document.getElementById('webResetBtn').onclick = () => {
+      isPlaying = true;
+      document.getElementById('webPlayBtn').innerText = 'Pause';
+      resetTrajectory();
+    };
 
     function resetTrajectory() {
       step = 0;
