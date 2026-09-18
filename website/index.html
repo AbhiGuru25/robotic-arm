@@ -92,17 +92,17 @@
       
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
         <div>
-          <h2 class="text-base font-bold text-white">Multi-Task Kinematics & Telemetry Simulator</h2>
-          <p class="text-xs text-slate-400">Interactive 2D kinematics simulation supporting 4 goal-conditioned robotic tasks</p>
+          <h2 class="text-base font-bold text-white">Multi-Task Kinematics & Inverse Kinematics (IK) Telemetry Simulator</h2>
+          <p class="text-xs text-slate-400">Analytical 2-link IK solver simulating 7-DOF Franka Panda arm trajectory execution</p>
         </div>
 
         <div class="flex items-center gap-3 text-xs font-mono">
           <label class="text-slate-400 text-xs font-semibold">Select Task:</label>
           <select id="taskSelect" class="bg-slate-900 border border-slate-700 text-blue-400 font-bold px-3 py-1.5 rounded focus:outline-none focus:border-blue-500 cursor-pointer">
-            <option value="pickandplace">PandaPickAndPlace-v3 (Pick & Lift)</option>
-            <option value="reach">PandaReach-v3 (3D Reaching)</option>
-            <option value="push">PandaPush-v3 (Surface Pushing)</option>
-            <option value="slide">PandaSlide-v3 (Impulse Sliding)</option>
+            <option value="pickandplace">PandaPickAndPlace-v3 (Grasp, Lift & Transport)</option>
+            <option value="reach">PandaReach-v3 (3D Kinematic Reaching)</option>
+            <option value="push">PandaPush-v3 (Surface Contact Pushing)</option>
+            <option value="slide">PandaSlide-v3 (Impulse Dynamic Sliding)</option>
           </select>
         </div>
       </div>
@@ -110,11 +110,11 @@
       <!-- Telemetry Status Bar -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#070a10] p-3 rounded-lg border border-slate-800 font-mono text-xs">
         <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Active Task</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Active Environment</div>
           <div id="webTaskName" class="text-blue-400 font-semibold text-xs mt-0.5">PandaPickAndPlace-v3</div>
         </div>
         <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">End-Effector Pos</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">End-Effector (X, Y, Z)</div>
           <div id="webEE" class="text-emerald-400 font-semibold text-xs mt-0.5">[+0.12, -0.04, +0.08]m</div>
         </div>
         <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
@@ -122,7 +122,7 @@
           <div id="webGrip" class="text-amber-400 font-semibold text-xs mt-0.5">OPEN (100%)</div>
         </div>
         <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Task Stage</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Trajectory Phase</div>
           <div id="webStage" class="text-slate-200 font-semibold text-xs mt-0.5">Stage 1: Approach</div>
         </div>
       </div>
@@ -144,7 +144,7 @@
         </div>
 
         <div class="text-slate-400">
-          Step: <span id="webStep" class="text-slate-100 font-bold">0</span> / 120
+          Simulation Step: <span id="webStep" class="text-slate-100 font-bold">0</span> / 120
         </div>
       </div>
     </div>
@@ -300,10 +300,36 @@
     const maxSteps = 120;
     let currentTask = 'pickandplace';
 
-    let ee = { x: 140, y: 80, z: 60 };
-    let block = { x: 300, y: 220, z: 20 };
-    let goal = { x: 460, y: 150, z: 100 };
+    let ee = { x: 140, y: 120, z: 60 };
+    let block = { x: 300, y: 220 };
+    let goal = { x: 460, y: 130 };
     let gripperOpen = true;
+
+    // 2-Link Analytical Inverse Kinematics (IK)
+    const baseJoint = { x: 100, y: 270 };
+    const L1 = 110;
+    const L2 = 110;
+
+    function solveIK(targetX, targetY) {
+      const dx = targetX - baseJoint.x;
+      const dy = targetY - baseJoint.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      
+      const maxDist = L1 + L2 - 1;
+      if (dist > maxDist) dist = maxDist;
+      if (dist < 20) dist = 20;
+
+      const alpha = Math.atan2(dy, dx);
+      const cosBeta = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist);
+      const beta = Math.acos(Math.max(-1, Math.min(1, cosBeta)));
+
+      // Elbow-up angle
+      const theta1 = alpha - beta;
+      const elbowX = baseJoint.x + L1 * Math.cos(theta1);
+      const elbowY = baseJoint.y + L1 * Math.sin(theta1);
+
+      return { base: baseJoint, elbow: { x: elbowX, y: elbowY }, wrist: { x: targetX, y: targetY } };
+    }
 
     const taskSelect = document.getElementById('taskSelect');
     taskSelect.onchange = (e) => {
@@ -320,24 +346,24 @@
 
     function resetTrajectory() {
       step = 0;
-      ee = { x: 140, y: 80, z: 60 };
+      ee = { x: 140, y: 120, z: 60 };
       if (currentTask === 'pickandplace') {
-        block = { x: 300, y: 220, z: 20 };
-        goal = { x: 480, y: 140, z: 100 };
+        block = { x: 300, y: 220 };
+        goal = { x: 460, y: 130 };
         gripperOpen = true;
         document.getElementById('webTaskName').innerText = "PandaPickAndPlace-v3";
       } else if (currentTask === 'reach') {
-        goal = { x: 420, y: 110, z: 120 };
+        goal = { x: 420, y: 120 };
         gripperOpen = true;
         document.getElementById('webTaskName').innerText = "PandaReach-v3";
       } else if (currentTask === 'push') {
-        block = { x: 280, y: 220, z: 20 };
-        goal = { x: 480, y: 220, z: 20 };
+        block = { x: 280, y: 220 };
+        goal = { x: 480, y: 220 };
         gripperOpen = false;
         document.getElementById('webTaskName').innerText = "PandaPush-v3";
       } else if (currentTask === 'slide') {
-        block = { x: 240, y: 220, z: 20 };
-        goal = { x: 540, y: 220, z: 20 };
+        block = { x: 240, y: 220 };
+        goal = { x: 520, y: 220 };
         gripperOpen = false;
         document.getElementById('webTaskName').innerText = "PandaSlide-v3";
       }
@@ -350,7 +376,7 @@
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      // Grid Coordinate Lines
+      // Grid Lines
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
       ctx.lineWidth = 1;
       for (let x = 0; x < w; x += 40) {
@@ -361,9 +387,10 @@
       }
 
       // Worktable Platform
+      const tableY = 236;
       ctx.fillStyle = '#111827';
       ctx.beginPath();
-      ctx.moveTo(60, 180); ctx.lineTo(w - 60, 180); ctx.lineTo(w - 120, 300); ctx.lineTo(20, 300);
+      ctx.moveTo(60, tableY); ctx.lineTo(w - 60, tableY); ctx.lineTo(w - 120, 310); ctx.lineTo(20, 310);
       ctx.closePath(); ctx.fill();
       ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.stroke();
 
@@ -378,38 +405,38 @@
 
         if (currentTask === 'pickandplace') {
           if (step < 35) {
-            ee.x += (block.x - ee.x) * 0.08; ee.y += (block.y - 70 - ee.y) * 0.08; gripperOpen = true;
+            ee.x += (block.x - ee.x) * 0.08; ee.y += (block.y - 60 - ee.y) * 0.08; gripperOpen = true;
             document.getElementById('webStage').innerText = "Stage 1/4: Approach Block";
-          } else if (step < 55) {
-            ee.y += (block.y - 12 - ee.y) * 0.12; gripperOpen = true;
-            document.getElementById('webStage').innerText = "Stage 2/4: Vertical Descent";
-          } else if (step < 85) {
-            gripperOpen = false; ee.y += (100 - ee.y) * 0.08; block.x = ee.x; block.y = ee.y + 14;
-            document.getElementById('webStage').innerText = "Stage 3/4: Clamping & Elevation";
+          } else if (step < 50) {
+            ee.y += (block.y - 18 - ee.y) * 0.15; gripperOpen = true;
+            document.getElementById('webStage').innerText = "Stage 2/4: Vertical Descent Over Block";
+          } else if (step < 75) {
+            gripperOpen = false; ee.y += (120 - ee.y) * 0.08; block.x = ee.x; block.y = ee.y + 16;
+            document.getElementById('webStage').innerText = "Stage 3/4: Clamping & Elevation Transport";
           } else {
-            gripperOpen = false; ee.x += (goal.x - ee.x) * 0.08; ee.y += (goal.y - ee.y) * 0.08; block.x = ee.x; block.y = ee.y + 14;
-            document.getElementById('webStage').innerText = "Stage 4/4: Transport to Goal";
+            gripperOpen = false; ee.x += (goal.x - ee.x) * 0.08; ee.y += (goal.y - ee.y) * 0.08; block.x = ee.x; block.y = ee.y + 16;
+            document.getElementById('webStage').innerText = "Stage 4/4: Transport to 3D Goal (SUCCESS!)";
           }
         } else if (currentTask === 'reach') {
           ee.x += (goal.x - ee.x) * 0.06; ee.y += (goal.y - ee.y) * 0.06; gripperOpen = true;
           document.getElementById('webStage').innerText = step < 90 ? "Tracking 3D Target Vector" : "Target Reached (0.4cm)";
         } else if (currentTask === 'push') {
-          if (step < 40) {
-            ee.x += (block.x - 30 - ee.x) * 0.08; ee.y += (block.y - ee.y) * 0.08;
+          if (step < 35) {
+            ee.x += (block.x - 22 - ee.x) * 0.08; ee.y += (tableY - 16 - ee.y) * 0.08; gripperOpen = false;
             document.getElementById('webStage').innerText = "Stage 1/3: Position Behind Block";
           } else {
-            ee.x += (goal.x - ee.x) * 0.05; block.x = ee.x + 20;
+            gripperOpen = false; ee.x += (goal.x - 22 - ee.x) * 0.05; ee.y = tableY - 16; block.x = ee.x + 20; block.y = tableY - 16;
             document.getElementById('webStage').innerText = "Stage 2/3: Horizontal Surface Push";
           }
         } else if (currentTask === 'slide') {
-          if (step < 35) {
-            ee.x += (block.x - 40 - ee.x) * 0.1; ee.y += (block.y - ee.y) * 0.1;
+          if (step < 30) {
+            ee.x += (block.x - 45 - ee.x) * 0.1; ee.y += (tableY - 16 - ee.y) * 0.1; gripperOpen = false;
             document.getElementById('webStage').innerText = "Stage 1/3: Backswing Setup";
-          } else if (step < 50) {
-            ee.x += 18; block.x += 22;
+          } else if (step < 45) {
+            ee.x += 12; block.x += 16; gripperOpen = false;
             document.getElementById('webStage').innerText = "Stage 2/3: High-Impulse Strike";
           } else {
-            block.x += (goal.x - block.x) * 0.08;
+            gripperOpen = false; block.x += (goal.x - block.x) * 0.08;
             document.getElementById('webStage').innerText = "Stage 3/3: Dynamic Puck Sliding";
           }
         }
@@ -421,27 +448,38 @@
         ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2; ctx.strokeRect(block.x - 12, block.y - 12, 24, 24);
       }
 
-      // Arm Linkages (7-DOF Arm Representation)
+      // Solve 2-Link IK for smooth elbow flexing
+      const ik = solveIK(ee.x, ee.y);
+
+      // Arm Links (Outer Shell)
       ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.beginPath(); ctx.moveTo(90, 270); ctx.lineTo(120, 160); ctx.lineTo(200, 110); ctx.lineTo(ee.x, ee.y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ik.base.x, ik.base.y);
+      ctx.lineTo(ik.elbow.x, ik.elbow.y);
+      ctx.lineTo(ik.wrist.x, ik.wrist.y);
+      ctx.stroke();
 
-      // Arm Inner Skeleton
+      // Arm Links (Inner Skeleton)
       ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(90, 270); ctx.lineTo(120, 160); ctx.lineTo(200, 110); ctx.lineTo(ee.x, ee.y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ik.base.x, ik.base.y);
+      ctx.lineTo(ik.elbow.x, ik.elbow.y);
+      ctx.lineTo(ik.wrist.x, ik.wrist.y);
+      ctx.stroke();
 
-      // Revolute Joint Crosshairs
-      const joints = [{x: 90, y: 270}, {x: 120, y: 160}, {x: 200, y: 110}];
+      // Revolute Joints (Base, Elbow, Wrist)
+      const joints = [ik.base, ik.elbow, ik.wrist];
       joints.forEach(j => {
-        ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.arc(j.x, j.y, 8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.arc(j.x, j.y, 7, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
       });
 
-      // Gripper Assembly
-      const span = gripperOpen ? 16 : 7;
-      ctx.fillStyle = '#334155'; ctx.fillRect(ee.x - 14, ee.y - 6, 28, 8);
+      // Gripper Assembly attached at wrist/EE
+      const span = gripperOpen ? 14 : 6;
+      ctx.fillStyle = '#334155'; ctx.fillRect(ee.x - 14, ee.y - 4, 28, 7);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(ee.x - span - 4, ee.y + 2, 5, 16);
-      ctx.fillRect(ee.x + span - 1, ee.y + 2, 5, 16);
+      ctx.fillRect(ee.x - span - 4, ee.y + 3, 5, 14);
+      ctx.fillRect(ee.x + span - 1, ee.y + 3, 5, 14);
 
       document.getElementById('webEE').innerText = `[+${(ee.x/1000).toFixed(2)}, +${(ee.y/1000).toFixed(2)}, +${(ee.z/100).toFixed(2)}]m`;
       document.getElementById('webGrip').innerText = gripperOpen ? "OPEN (100%)" : "CLAMPED (100%)";
