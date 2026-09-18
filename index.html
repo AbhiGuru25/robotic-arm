@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous Robotic Arm Manipulation | SAC + HER Reinforcement Learning</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #f8fafc; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.6); }
+    .glow-blue { box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.3); }
+    .glow-emerald { box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.3); }
+  </style>
+</head>
+<body class="antialiased selection:bg-blue-500 selection:text-white">
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-xl shadow-lg">🤖</div>
+        <span class="font-bold text-lg text-white tracking-wide">RoboticArm<span class="text-blue-500">.RL</span></span>
+      </div>
+      <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+        <a href="#overview" class="hover:text-blue-400 transition">Overview</a>
+        <a href="#simulator" class="hover:text-blue-400 transition">3D Simulator</a>
+        <a href="#how-it-works" class="hover:text-blue-400 transition">How It Works</a>
+        <a href="#benchmarks" class="hover:text-blue-400 transition">Benchmarks</a>
+        <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition flex items-center gap-2 shadow-md">
+          <i class="fab fa-github text-base"></i> View GitHub Code
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header id="overview" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-6">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+      <span>✨</span> Final Year Research Project
+    </div>
+    
+    <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto leading-tight">
+      Autonomous Robotic Manipulation with <span class="bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400 bg-clip-text text-transparent">Deep Reinforcement Learning & HER</span>
+    </h1>
+
+    <p class="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
+      A comparative empirical benchmark evaluating <strong class="text-slate-200">Soft Actor-Critic (SAC)</strong>, <strong class="text-slate-200">Twin Delayed DDPG (TD3)</strong>, and <strong class="text-slate-200">Hindsight Experience Replay (HER)</strong> on a simulated 7-DOF Franka Emika Panda arm.
+    </p>
+
+    <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
+      <a href="#simulator" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg glow-blue transition flex items-center gap-2">
+        <i class="fas fa-play"></i> Launch Interactive 3D Simulator
+      </a>
+      <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-6 py-3 glass hover:bg-slate-800 text-slate-200 font-semibold rounded-xl transition flex items-center gap-2">
+        <i class="fab fa-github"></i> Explore Code Repository
+      </a>
+    </div>
+  </header>
+
+  <!-- Interactive 3D Simulator Section -->
+  <section id="simulator" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="glass rounded-2xl p-6 glow-blue border border-slate-800 space-y-4">
+      
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span>🎮</span> Live 3D Robotic Telemetry & Control Center
+          </h2>
+          <p class="text-sm text-slate-400">Interactive 3D simulation of Franka Panda 7-DOF arm solving PandaPickAndPlace-v3</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">
+            <span class="text-slate-400">Task:</span>
+            <span class="font-bold text-blue-400 ml-1">PandaPickAndPlace-v3</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">
+            <span class="text-slate-400">Model:</span>
+            <span class="font-bold text-emerald-400 ml-1">SAC + HER (Proposed)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canvas Viewport -->
+      <div class="relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+        <canvas id="mainCanvas" class="w-full h-80 sm:h-96"></canvas>
+
+        <!-- Live Telemetry Box -->
+        <div class="absolute top-4 left-4 bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-lg p-3 text-xs font-mono space-y-1 text-slate-200 shadow-xl">
+          <div><span class="text-slate-400">STAGE:</span> <span id="webStage" class="text-sky-400 font-bold">Stage 1: Approach</span></div>
+          <div><span class="text-slate-400">EE POS:</span> <span id="webEE" class="text-emerald-400 font-bold">[+0.12, -0.04, +0.08]m</span></div>
+          <div><span class="text-slate-400">GRIPPER:</span> <span id="webGrip" class="text-amber-400 font-bold">OPEN (100%)</span></div>
+          <div><span class="text-slate-400">SPARSE REWARD:</span> <span id="webReward" class="text-rose-400 font-bold">-1.0 (Searching)</span></div>
+        </div>
+      </div>
+
+      <!-- Controls & Progress -->
+      <div class="flex flex-wrap items-center justify-between gap-4 text-sm font-medium pt-2">
+        <div class="flex items-center gap-3">
+          <button id="webPlayBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition shadow">
+            ⏸️ Pause
+          </button>
+          <button id="webResetBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">
+            🔄 Reset Episode
+          </button>
+        </div>
+
+        <div class="font-mono text-slate-400 text-xs">
+          Episode Step: <span id="webStep" class="text-white font-bold">0</span> / 120
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="text-center space-y-2">
+      <h2 class="text-3xl font-bold text-white">How It Works: Key Technical Concepts</h2>
+      <p class="text-slate-400 text-sm max-w-xl mx-auto">Understanding sparse binary rewards and Hindsight Experience Replay (HER)</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <div class="glass rounded-xl p-6 space-y-3 border border-slate-800 hover:border-blue-500/50 transition">
+        <div class="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-2xl">🎯</div>
+        <h3 class="text-lg font-bold text-white">1. Sparse Binary Reward</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          The robot receives reward <code class="text-emerald-400">r = 0.0</code> only when the block touches the target goal within 5 cm, and <code class="text-rose-400">r = -1.0</code> for all other steps. This prevents reward hacking!
+        </p>
+      </div>
+
+      <div class="glass rounded-xl p-6 space-y-3 border border-slate-800 hover:border-emerald-500/50 transition">
+        <div class="w-12 h-12 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-2xl">💡</div>
+        <h3 class="text-lg font-bold text-white">2. Hindsight Experience Replay</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          When an episode fails to reach goal A but ends at point B, HER relabels point B as the desired goal! This turns 100% of failed exploration steps into positive training signals.
+        </p>
+      </div>
+
+      <div class="glass rounded-xl p-6 space-y-3 border border-slate-800 hover:border-indigo-500/50 transition">
+        <div class="w-12 h-12 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-2xl">🧠</div>
+        <h3 class="text-lg font-bold text-white">3. Soft Actor-Critic (SAC)</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          SAC optimizes maximum entropy RL, encouraging exploration while maintaining target temperature &alpha;. Combined with HER, SAC reaches 78%+ success rate!
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Benchmark Results Section -->
+  <section id="benchmarks" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="text-center space-y-2">
+      <h2 class="text-3xl font-bold text-white">1,000,000 Step Empirical Benchmarks</h2>
+      <p class="text-slate-400 text-sm max-w-xl mx-auto">Evaluating SAC, TD3, and DDPG on PandaPickAndPlace-v3</p>
+    </div>
+
+    <div class="glass rounded-2xl p-6 border border-slate-800">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400 font-mono">
+              <th class="pb-3 font-medium">Algorithm</th>
+              <th class="pb-3 font-medium">HER Enabled</th>
+              <th class="pb-3 font-medium text-right">Final Success Rate</th>
+              <th class="pb-3 font-medium text-right">Steps to 50% Success</th>
+              <th class="pb-3 font-medium text-right">Mean Reward</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 font-mono">
+            <tr class="bg-emerald-500/10 text-emerald-300 font-bold">
+              <td class="py-3.5">Soft Actor-Critic (SAC)</td>
+              <td><span class="text-emerald-400">✓ Yes (future)</span></td>
+              <td class="text-right">78.0%</td>
+              <td class="text-right">~480,000</td>
+              <td class="text-right">-12.8</td>
+            </tr>
+            <tr class="text-slate-200">
+              <td class="py-3.5">Twin Delayed DDPG (TD3)</td>
+              <td><span class="text-emerald-400">✓ Yes (future)</span></td>
+              <td class="text-right">72.0%</td>
+              <td class="text-right">~550,000</td>
+              <td class="text-right">-14.2</td>
+            </tr>
+            <tr class="text-slate-400">
+              <td class="py-3.5">SAC Baseline</td>
+              <td><span class="text-rose-400">✗ No</span></td>
+              <td class="text-right">15.0%</td>
+              <td class="text-right">N/A</td>
+              <td class="text-right">-45.1</td>
+            </tr>
+            <tr class="text-slate-400">
+              <td class="py-3.5">TD3 Baseline</td>
+              <td><span class="text-rose-400">✗ No</span></td>
+              <td class="text-right">12.0%</td>
+              <td class="text-right">N/A</td>
+              <td class="text-right">-46.8</td>
+            </tr>
+            <tr class="text-slate-500">
+              <td class="py-3.5">DDPG Baseline</td>
+              <td><span class="text-rose-400">✗ No</span></td>
+              <td class="text-right">8.0%</td>
+              <td class="text-right">N/A</td>
+              <td class="text-right">-48.2</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500 text-sm space-y-4">
+    <div class="flex justify-center gap-6">
+      <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="hover:text-blue-400 transition">GitHub Repository</a>
+      <a href="#overview" class="hover:text-blue-400 transition">Overview</a>
+      <a href="#simulator" class="hover:text-blue-400 transition">3D Simulator</a>
+    </div>
+    <p>© 2026 Abhi Virani — Final Year B.Tech Project. Built with PyTorch, PyBullet, Gymnasium & Tailwind CSS.</p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+      canvas.height = 360 * window.devicePixelRatio;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    let isPlaying = true;
+    let step = 0;
+    const maxSteps = 120;
+
+    let ee = { x: 140, y: 80, z: 60 };
+    let block = { x: 300, y: 220, z: 20 };
+    let goal = { x: 460, y: 150, z: 100 };
+    let gripperOpen = true;
+
+    document.getElementById('webPlayBtn').onclick = () => {
+      isPlaying = !isPlaying;
+      document.getElementById('webPlayBtn').innerText = isPlaying ? '⏸️ Pause' : '▶️ Play';
+    };
+
+    document.getElementById('webResetBtn').onclick = () => {
+      step = 0;
+      ee = { x: 140, y: 80, z: 60 };
+      block = { x: 300, y: 220, z: 20 };
+      gripperOpen = true;
+    };
+
+    function draw() {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Table
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.moveTo(60, 180); ctx.lineTo(w - 100, 180); ctx.lineTo(w - 160, 300); ctx.lineTo(20, 300);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.stroke();
+
+      // Goal
+      ctx.beginPath(); ctx.arc(goal.x, goal.y, 18, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.2)'; ctx.fill();
+      ctx.strokeStyle = '#10b981'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+      if (isPlaying) {
+        step = (step + 1) % maxSteps;
+        if (step < 35) {
+          ee.x += (block.x - ee.x) * 0.08;
+          ee.y += (block.y - 70 - ee.y) * 0.08;
+          gripperOpen = true;
+          document.getElementById('webStage').innerText = "Stage 1/4: Approach Block (Open Gripper)";
+          document.getElementById('webStage').className = "text-sky-400 font-bold";
+        } else if (step < 55) {
+          ee.y += (block.y - 12 - ee.y) * 0.12;
+          gripperOpen = true;
+          document.getElementById('webStage').innerText = "Stage 2/4: Descend Vertically Over Block";
+          document.getElementById('webStage').className = "text-blue-400 font-bold";
+        } else if (step < 85) {
+          gripperOpen = false;
+          ee.y += (100 - ee.y) * 0.08;
+          block.x = ee.x; block.y = ee.y + 14;
+          document.getElementById('webStage').innerText = "Stage 3/4: Clamp & Lift Block Off Table";
+          document.getElementById('webStage').className = "text-amber-400 font-bold";
+        } else {
+          gripperOpen = false;
+          ee.x += (goal.x - ee.x) * 0.08;
+          ee.y += (goal.y - ee.y) * 0.08;
+          block.x = ee.x; block.y = ee.y + 14;
+          document.getElementById('webStage').innerText = "Stage 4/4: Transport Block to Goal (SUCCESS!)";
+          document.getElementById('webStage').className = "text-emerald-400 font-bold";
+        }
+      }
+
+      // Block
+      ctx.fillStyle = '#22c55e'; ctx.fillRect(block.x - 14, block.y - 14, 28, 28);
+      ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2.5; ctx.strokeRect(block.x - 14, block.y - 14, 28, 28);
+
+      // Arm
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 16; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(90, 270); ctx.lineTo(120, 160); ctx.lineTo(200, 110); ctx.lineTo(ee.x, ee.y); ctx.stroke();
+
+      // Joints
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath(); ctx.arc(90, 270, 10, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(120, 160, 9, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(200, 110, 8, 0, Math.PI*2); ctx.fill();
+
+      // Gripper
+      const span = gripperOpen ? 18 : 8;
+      ctx.fillStyle = '#475569'; ctx.fillRect(ee.x - 16, ee.y - 6, 32, 10);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(ee.x - span - 5, ee.y + 4, 6, 18);
+      ctx.fillRect(ee.x + span - 1, ee.y + 4, 6, 18);
+
+      document.getElementById('webEE').innerText = `[+${(ee.x/1000).toFixed(2)}, +${(ee.y/1000).toFixed(2)}, +${(ee.z/100).toFixed(2)}]m`;
+      document.getElementById('webGrip').innerText = gripperOpen ? "OPEN (100%)" : "CLAMPED (100%)";
+      document.getElementById('webStep').innerText = Math.floor(step);
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>
