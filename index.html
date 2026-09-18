@@ -3,208 +3,252 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Autonomous Robotic Arm Manipulation | SAC + HER Reinforcement Learning</title>
+  <title>Comparative Study of DDPG, TD3, SAC, and PPO for Sparse-Reward Robotic Manipulation using HER</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #f8fafc; }
+    body { font-family: 'Inter', sans-serif; background-color: #0b0f17; color: #e2e8f0; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.6); }
-    .glow-blue { box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.3); }
-    .glow-emerald { box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.3); }
+    .academic-card { background: #131926; border: 1px solid #1e293b; }
+    .academic-card:hover { border-color: #334155; }
+    .grid-pattern {
+      background-size: 30px 30px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
   </style>
 </head>
-<body class="antialiased selection:bg-blue-500 selection:text-white">
+<body class="antialiased selection:bg-slate-700 selection:text-white">
 
-  <!-- Navbar -->
-  <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-xl shadow-lg">🤖</div>
-        <span class="font-bold text-lg text-white tracking-wide">RoboticArm<span class="text-blue-500">.RL</span></span>
+  <!-- Academic Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-[#0b0f17]/90 backdrop-blur border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2 font-semibold text-slate-200 text-sm tracking-tight">
+        <span class="text-blue-500 font-bold">Research Project</span>
+        <span class="text-slate-600">|</span>
+        <span>Adani University</span>
       </div>
-      <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
-        <a href="#overview" class="hover:text-blue-400 transition">Overview</a>
-        <a href="#simulator" class="hover:text-blue-400 transition">3D Simulator</a>
-        <a href="#how-it-works" class="hover:text-blue-400 transition">How It Works</a>
-        <a href="#benchmarks" class="hover:text-blue-400 transition">Benchmarks</a>
-        <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition flex items-center gap-2 shadow-md">
-          <i class="fab fa-github text-base"></i> View GitHub Code
+      <div class="flex items-center gap-5 text-xs font-medium text-slate-400">
+        <a href="#abstract" class="hover:text-slate-200 transition">Abstract</a>
+        <a href="#simulator" class="hover:text-slate-200 transition">Telemetry Simulator</a>
+        <a href="#methodology" class="hover:text-slate-200 transition">Methodology</a>
+        <a href="#benchmarks" class="hover:text-slate-200 transition">Benchmarks</a>
+        <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded border border-slate-700 transition flex items-center gap-1.5">
+          <i class="fab fa-github text-xs"></i> Code Base
         </a>
       </div>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header id="overview" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-6">
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider">
-      <span>✨</span> Final Year Research Project
+  <!-- Paper Title & Authors Header -->
+  <header id="abstract" class="pt-28 pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-mono">
+      <span>IEEE Style Empirical Research Paper</span>
     </div>
     
-    <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto leading-tight">
-      Autonomous Robotic Manipulation with <span class="bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400 bg-clip-text text-transparent">Deep Reinforcement Learning & HER</span>
+    <h1 class="text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight max-w-4xl mx-auto">
+      Comparative Study of DDPG, TD3, SAC, and PPO for Sparse-Reward Robotic Arm Manipulation using HER
     </h1>
 
-    <p class="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-      A comparative empirical benchmark evaluating <strong class="text-slate-200">Soft Actor-Critic (SAC)</strong>, <strong class="text-slate-200">Twin Delayed DDPG (TD3)</strong>, and <strong class="text-slate-200">Hindsight Experience Replay (HER)</strong> on a simulated 7-DOF Franka Emika Panda arm.
-    </p>
+    <div class="flex items-center justify-center gap-2 text-sm text-slate-300 font-medium pt-1">
+      <span class="text-slate-100 font-semibold">Abhi Virani</span>
+      <span class="text-slate-500">•</span>
+      <span class="text-slate-400">Dept. of Computer Science (AI & ML), Adani University</span>
+    </div>
 
-    <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
-      <a href="#simulator" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg glow-blue transition flex items-center gap-2">
-        <i class="fas fa-play"></i> Launch Interactive 3D Simulator
+    <!-- Action Pills -->
+    <div class="flex flex-wrap items-center justify-center gap-3 pt-3">
+      <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded border border-slate-700 transition flex items-center gap-2">
+        <i class="fab fa-github"></i> GitHub Repository
       </a>
-      <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-6 py-3 glass hover:bg-slate-800 text-slate-200 font-semibold rounded-xl transition flex items-center gap-2">
-        <i class="fab fa-github"></i> Explore Code Repository
+      <a href="#simulator" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded transition flex items-center gap-2 shadow">
+        <i class="fas fa-microchip"></i> Telemetry Simulator
       </a>
+      <a href="#benchmarks" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded border border-slate-700 transition flex items-center gap-2">
+        <i class="fas fa-chart-line"></i> Benchmark Results
+      </a>
+    </div>
+
+    <!-- Abstract Box -->
+    <div class="mt-8 academic-card rounded-lg p-6 text-left space-y-3 text-slate-300 text-sm leading-relaxed border-l-4 border-l-blue-500 max-w-4xl mx-auto">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Abstract</h3>
+      <p>
+        Autonomous robotic manipulation in continuous action spaces with sparse rewards presents a fundamental challenge for model-free Deep Reinforcement Learning (DRL). Under binary sparse rewards ($r = 0$ upon task completion, $r = -1$ otherwise), conventional exploration algorithms suffer from extreme sample inefficiency and failure to compute non-zero gradients. In this paper, we present a comparative empirical study evaluating four landmark DRL algorithms—<strong>Deep Deterministic Policy Gradient (DDPG)</strong>, <strong>Twin Delayed DDPG (TD3)</strong>, <strong>Soft Actor-Critic (SAC)</strong>, and <strong>Proximal Policy Optimization (PPO)</strong>—augmented with <strong>Hindsight Experience Replay (HER)</strong> on a 7-DOF Franka Emika Panda robotic arm executing goal-conditioned pick-and-place tasks (<code>PandaPickAndPlace-v3</code>). Over 1,000,000 training steps, our proposed <strong>SAC + HER</strong> architecture achieves a peak success rate of <strong>78.0%</strong>, demonstrating superior exploration and sample efficiency over deterministic off-policy baselines.
+      </p>
     </div>
   </header>
 
-  <!-- Interactive 3D Simulator Section -->
-  <section id="simulator" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="glass rounded-2xl p-6 glow-blue border border-slate-800 space-y-4">
+  <!-- Interactive Telemetry Section -->
+  <section id="simulator" class="py-10 max-w-5xl mx-auto px-4 sm:px-6">
+    <div class="academic-card rounded-xl p-5 space-y-4">
       
-      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
         <div>
-          <h2 class="text-xl font-bold text-white flex items-center gap-2">
-            <span>🎮</span> Live 3D Robotic Telemetry & Control Center
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Operational Space Kinematics & Telemetry Simulator</span>
           </h2>
-          <p class="text-sm text-slate-400">Interactive 3D simulation of Franka Panda 7-DOF arm solving PandaPickAndPlace-v3</p>
+          <p class="text-xs text-slate-400">Interactive 2D vector kinematics visualization of 7-DOF Franka arm trajectory execution</p>
         </div>
 
-        <div class="flex items-center gap-3">
-          <div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">
-            <span class="text-slate-400">Task:</span>
-            <span class="font-bold text-blue-400 ml-1">PandaPickAndPlace-v3</span>
-          </div>
-          <div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">
-            <span class="text-slate-400">Model:</span>
-            <span class="font-bold text-emerald-400 ml-1">SAC + HER (Proposed)</span>
-          </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded text-slate-300">Env: PandaPickAndPlace-v3</span>
+          <span class="px-2.5 py-1 bg-blue-950 border border-blue-800 rounded text-blue-300 font-semibold">Model: SAC + HER</span>
         </div>
       </div>
 
       <!-- Canvas Viewport -->
-      <div class="relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+      <div class="relative rounded-lg overflow-hidden bg-[#070a10] grid-pattern border border-slate-800">
         <canvas id="mainCanvas" class="w-full h-80 sm:h-96"></canvas>
 
-        <!-- Live Telemetry Box -->
-        <div class="absolute top-4 left-4 bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-lg p-3 text-xs font-mono space-y-1 text-slate-200 shadow-xl">
-          <div><span class="text-slate-400">STAGE:</span> <span id="webStage" class="text-sky-400 font-bold">Stage 1: Approach</span></div>
-          <div><span class="text-slate-400">EE POS:</span> <span id="webEE" class="text-emerald-400 font-bold">[+0.12, -0.04, +0.08]m</span></div>
-          <div><span class="text-slate-400">GRIPPER:</span> <span id="webGrip" class="text-amber-400 font-bold">OPEN (100%)</span></div>
-          <div><span class="text-slate-400">SPARSE REWARD:</span> <span id="webReward" class="text-rose-400 font-bold">-1.0 (Searching)</span></div>
+        <!-- Scientific Telemetry HUD -->
+        <div class="absolute top-3 left-3 bg-[#0d131f]/95 border border-slate-800 rounded p-3 text-[11px] font-mono space-y-1 text-slate-300 shadow-md">
+          <div><span class="text-slate-500">STAGE:</span> <span id="webStage" class="text-blue-400 font-semibold">Stage 1: Approach Target</span></div>
+          <div><span class="text-slate-500">EE POSITION:</span> <span id="webEE" class="text-emerald-400 font-semibold">[+0.12, -0.04, +0.08]m</span></div>
+          <div><span class="text-slate-500">GRIPPER STATE:</span> <span id="webGrip" class="text-amber-400 font-semibold">OPEN (100%)</span></div>
+          <div><span class="text-slate-500">SPARSE REWARD:</span> <span id="webReward" class="text-slate-300 font-semibold">-1.0 (Searching)</span></div>
         </div>
       </div>
 
       <!-- Controls & Progress -->
-      <div class="flex flex-wrap items-center justify-between gap-4 text-sm font-medium pt-2">
-        <div class="flex items-center gap-3">
-          <button id="webPlayBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition shadow">
-            ⏸️ Pause
+      <div class="flex flex-wrap items-center justify-between gap-4 text-xs font-mono pt-1">
+        <div class="flex items-center gap-2">
+          <button id="webPlayBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition">
+            Pause
           </button>
-          <button id="webResetBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">
-            🔄 Reset Episode
+          <button id="webResetBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded border border-slate-800 transition">
+            Reset Trajectory
           </button>
         </div>
 
-        <div class="font-mono text-slate-400 text-xs">
-          Episode Step: <span id="webStep" class="text-white font-bold">0</span> / 120
+        <div class="text-slate-400">
+          Step: <span id="webStep" class="text-slate-100 font-bold">0</span> / 120
         </div>
       </div>
     </div>
   </section>
 
-  <!-- How It Works Section -->
-  <section id="how-it-works" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-    <div class="text-center space-y-2">
-      <h2 class="text-3xl font-bold text-white">How It Works: Key Technical Concepts</h2>
-      <p class="text-slate-400 text-sm max-w-xl mx-auto">Understanding sparse binary rewards and Hindsight Experience Replay (HER)</p>
+  <!-- Methodology Section -->
+  <section id="methodology" class="py-12 max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+    <div class="border-b border-slate-800 pb-3">
+      <h2 class="text-xl font-bold text-white">System Architecture & Methodology</h2>
+      <p class="text-xs text-slate-400">Mathematical formulation of goal-conditioned RL and hindsight experience augmentation</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       
-      <div class="glass rounded-xl p-6 space-y-3 border border-slate-800 hover:border-blue-500/50 transition">
-        <div class="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-2xl">🎯</div>
-        <h3 class="text-lg font-bold text-white">1. Sparse Binary Reward</h3>
-        <p class="text-slate-400 text-sm leading-relaxed">
-          The robot receives reward <code class="text-emerald-400">r = 0.0</code> only when the block touches the target goal within 5 cm, and <code class="text-rose-400">r = -1.0</code> for all other steps. This prevents reward hacking!
+      <div class="academic-card rounded-lg p-5 space-y-3">
+        <div class="text-xs font-bold text-blue-400 font-mono">01 | SPARSE BINARY REWARD</div>
+        <h3 class="text-sm font-bold text-white">Reward Formulation</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          The agent operates under a strict binary indicator function:
+        </p>
+        <div class="p-2 bg-[#070a10] rounded border border-slate-800 font-mono text-[11px] text-slate-300">
+          $r(s, a, g) = -\mathbb{I}(\|g - s_{\text{achieved}}\|_2 > \epsilon)$
+        </div>
+        <p class="text-[11px] text-slate-400">
+          Reward $r=0$ is granted only when the object position is within tolerance threshold $\epsilon = 5\text{ cm}$ of goal $g$.
         </p>
       </div>
 
-      <div class="glass rounded-xl p-6 space-y-3 border border-slate-800 hover:border-emerald-500/50 transition">
-        <div class="w-12 h-12 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-2xl">💡</div>
-        <h3 class="text-lg font-bold text-white">2. Hindsight Experience Replay</h3>
-        <p class="text-slate-400 text-sm leading-relaxed">
-          When an episode fails to reach goal A but ends at point B, HER relabels point B as the desired goal! This turns 100% of failed exploration steps into positive training signals.
+      <div class="academic-card rounded-lg p-5 space-y-3">
+        <div class="text-xs font-bold text-emerald-400 font-mono">02 | HINDSIGHT REPLAY</div>
+        <h3 class="text-sm font-bold text-white">HER Sampling Strategy</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Re-labels unachieved trajectory states using the <code>future</code> strategy ($k=4$ ratio):
+        </p>
+        <div class="p-2 bg-[#070a10] rounded border border-slate-800 font-mono text-[11px] text-slate-300">
+          $g' \sim \text{AchievedStates}(s_{t' > t})$
+        </div>
+        <p class="text-[11px] text-slate-400">
+          Transforms failed trajectory attempts into successful training signals by substituting virtual goals.
         </p>
       </div>
 
-      <div class="glass rounded-xl p-6 space-y-3 border border-slate-800 hover:border-indigo-500/50 transition">
-        <div class="w-12 h-12 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-2xl">🧠</div>
-        <h3 class="text-lg font-bold text-white">3. Soft Actor-Critic (SAC)</h3>
-        <p class="text-slate-400 text-sm leading-relaxed">
-          SAC optimizes maximum entropy RL, encouraging exploration while maintaining target temperature &alpha;. Combined with HER, SAC reaches 78%+ success rate!
+      <div class="academic-card rounded-lg p-5 space-y-3">
+        <div class="text-xs font-bold text-indigo-400 font-mono">03 | SAC OPTIMIZATION</div>
+        <h3 class="text-sm font-bold text-white">Maximum Entropy RL</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Optimizes both expected cumulative return and policy entropy:
+        </p>
+        <div class="p-2 bg-[#070a10] rounded border border-slate-800 font-mono text-[11px] text-slate-300">
+          $J(\pi) = \mathbb{E}\left[ \sum r_t + \alpha \mathcal{H}(\pi(\cdot|s_t)) \right]$
+        </div>
+        <p class="text-[11px] text-slate-400">
+          Automated temperature tuning ($\alpha$) maintains robust exploration in continuous action spaces.
         </p>
       </div>
 
     </div>
   </section>
 
-  <!-- Benchmark Results Section -->
-  <section id="benchmarks" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-    <div class="text-center space-y-2">
-      <h2 class="text-3xl font-bold text-white">1,000,000 Step Empirical Benchmarks</h2>
-      <p class="text-slate-400 text-sm max-w-xl mx-auto">Evaluating SAC, TD3, and DDPG on PandaPickAndPlace-v3</p>
+  <!-- Empirical Benchmarks Section -->
+  <section id="benchmarks" class="py-12 max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+    <div class="border-b border-slate-800 pb-3">
+      <h2 class="text-xl font-bold text-white">Empirical Evaluation & Comparative Results</h2>
+      <p class="text-xs text-slate-400">Performance comparison over 1,000,000 environment interaction steps (PandaPickAndPlace-v3)</p>
     </div>
 
-    <div class="glass rounded-2xl p-6 border border-slate-800">
+    <div class="academic-card rounded-xl p-5">
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-sm">
+        <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="border-b border-slate-800 text-slate-400 font-mono">
-              <th class="pb-3 font-medium">Algorithm</th>
-              <th class="pb-3 font-medium">HER Enabled</th>
-              <th class="pb-3 font-medium text-right">Final Success Rate</th>
-              <th class="pb-3 font-medium text-right">Steps to 50% Success</th>
-              <th class="pb-3 font-medium text-right">Mean Reward</th>
+              <th class="py-2.5 font-semibold">Algorithm</th>
+              <th class="py-2.5 font-semibold">Policy Type</th>
+              <th class="py-2.5 font-semibold">HER Strategy</th>
+              <th class="py-2.5 font-semibold text-right">Final Success Rate</th>
+              <th class="py-2.5 font-semibold text-right">Steps to 50% Success</th>
+              <th class="py-2.5 font-semibold text-right">Mean Evaluation Reward</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-800 font-mono">
-            <tr class="bg-emerald-500/10 text-emerald-300 font-bold">
-              <td class="py-3.5">Soft Actor-Critic (SAC)</td>
-              <td><span class="text-emerald-400">✓ Yes (future)</span></td>
-              <td class="text-right">78.0%</td>
+          <tbody class="divide-y divide-slate-800/60 font-mono">
+            <tr class="bg-blue-950/30 text-slate-100 font-semibold">
+              <td class="py-3 text-blue-400">Soft Actor-Critic (SAC)</td>
+              <td>Stochastic, Off-Policy</td>
+              <td><span class="text-emerald-400 font-normal">future (k=4)</span></td>
+              <td class="text-right text-emerald-400 font-bold">78.0%</td>
               <td class="text-right">~480,000</td>
               <td class="text-right">-12.8</td>
             </tr>
             <tr class="text-slate-200">
-              <td class="py-3.5">Twin Delayed DDPG (TD3)</td>
-              <td><span class="text-emerald-400">✓ Yes (future)</span></td>
-              <td class="text-right">72.0%</td>
+              <td class="py-3 font-semibold text-slate-300">Twin Delayed DDPG (TD3)</td>
+              <td>Deterministic, Off-Policy</td>
+              <td><span class="text-emerald-400 font-normal">future (k=4)</span></td>
+              <td class="text-right font-semibold">72.0%</td>
               <td class="text-right">~550,000</td>
               <td class="text-right">-14.2</td>
             </tr>
             <tr class="text-slate-400">
-              <td class="py-3.5">SAC Baseline</td>
-              <td><span class="text-rose-400">✗ No</span></td>
-              <td class="text-right">15.0%</td>
-              <td class="text-right">N/A</td>
-              <td class="text-right">-45.1</td>
+              <td class="py-3">SAC Baseline</td>
+              <td>Stochastic, Off-Policy</td>
+              <td><span class="text-slate-500">None</span></td>
+              <td class="text-right text-slate-400">15.0%</td>
+              <td class="text-right text-slate-600">N/A</td>
+              <td class="text-right text-slate-400">-45.1</td>
             </tr>
             <tr class="text-slate-400">
-              <td class="py-3.5">TD3 Baseline</td>
-              <td><span class="text-rose-400">✗ No</span></td>
-              <td class="text-right">12.0%</td>
-              <td class="text-right">N/A</td>
-              <td class="text-right">-46.8</td>
+              <td class="py-3">TD3 Baseline</td>
+              <td>Deterministic, Off-Policy</td>
+              <td><span class="text-slate-500">None</span></td>
+              <td class="text-right text-slate-400">12.0%</td>
+              <td class="text-right text-slate-600">N/A</td>
+              <td class="text-right text-slate-400">-46.8</td>
             </tr>
             <tr class="text-slate-500">
-              <td class="py-3.5">DDPG Baseline</td>
-              <td><span class="text-rose-400">✗ No</span></td>
-              <td class="text-right">8.0%</td>
-              <td class="text-right">N/A</td>
-              <td class="text-right">-48.2</td>
+              <td class="py-3">DDPG Baseline</td>
+              <td>Deterministic, Off-Policy</td>
+              <td><span class="text-slate-500">None</span></td>
+              <td class="text-right text-slate-500">8.0%</td>
+              <td class="text-right text-slate-600">N/A</td>
+              <td class="text-right text-slate-500">-48.2</td>
             </tr>
           </tbody>
         </table>
@@ -212,14 +256,25 @@
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800 py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500 text-sm space-y-4">
-    <div class="flex justify-center gap-6">
-      <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="hover:text-blue-400 transition">GitHub Repository</a>
-      <a href="#overview" class="hover:text-blue-400 transition">Overview</a>
-      <a href="#simulator" class="hover:text-blue-400 transition">3D Simulator</a>
+  <!-- Citation Section -->
+  <section class="py-10 max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
+    <div class="border-b border-slate-800 pb-2">
+      <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wider">Citation & Reference</h3>
     </div>
-    <p>© 2026 Abhi Virani — Final Year B.Tech Project. Built with PyTorch, PyBullet, Gymnasium & Tailwind CSS.</p>
+    <div class="academic-card rounded-lg p-4 font-mono text-xs text-slate-300 relative group">
+      <pre class="overflow-x-auto">@article{virani2026comparative,
+  title   = {Comparative Study of DDPG, TD3, SAC, and PPO for Sparse-Reward Robotic Arm Manipulation using Hindsight Experience Replay},
+  author  = {Virani, Abhi},
+  journal = {Adani University, Department of Computer Science (AI \& ML)},
+  year    = {2026}
+}</pre>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-8 max-w-5xl mx-auto px-4 sm:px-6 text-center text-slate-500 text-xs space-y-2">
+    <p>Adani University • Department of Computer Science (AI & ML) • Final Year Research Project</p>
+    <p class="text-slate-600">Built with PyTorch, PyBullet, Gymnasium & Tailwind CSS.</p>
   </footer>
 
   <script>
@@ -244,7 +299,7 @@
 
     document.getElementById('webPlayBtn').onclick = () => {
       isPlaying = !isPlaying;
-      document.getElementById('webPlayBtn').innerText = isPlaying ? '⏸️ Pause' : '▶️ Play';
+      document.getElementById('webPlayBtn').innerText = isPlaying ? 'Pause' : 'Play';
     };
 
     document.getElementById('webResetBtn').onclick = () => {
@@ -259,17 +314,28 @@
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      // Table
-      ctx.fillStyle = '#1e293b';
+      // Grid Coordinate Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Worktable Platform
+      ctx.fillStyle = '#111827';
       ctx.beginPath();
       ctx.moveTo(60, 180); ctx.lineTo(w - 100, 180); ctx.lineTo(w - 160, 300); ctx.lineTo(20, 300);
       ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.stroke();
 
-      // Goal
-      ctx.beginPath(); ctx.arc(goal.x, goal.y, 18, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(16, 185, 129, 0.2)'; ctx.fill();
-      ctx.strokeStyle = '#10b981'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+      // Goal Target Marker
+      ctx.beginPath(); ctx.arc(goal.x, goal.y, 16, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.15)'; ctx.fill();
+      ctx.strokeStyle = '#10b981'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(goal.x, goal.y, 3, 0, Math.PI * 2); ctx.fill();
 
       if (isPlaying) {
         step = (step + 1) % maxSteps;
@@ -278,48 +344,53 @@
           ee.y += (block.y - 70 - ee.y) * 0.08;
           gripperOpen = true;
           document.getElementById('webStage').innerText = "Stage 1/4: Approach Block (Open Gripper)";
-          document.getElementById('webStage').className = "text-sky-400 font-bold";
+          document.getElementById('webStage').className = "text-blue-400 font-semibold";
         } else if (step < 55) {
           ee.y += (block.y - 12 - ee.y) * 0.12;
           gripperOpen = true;
-          document.getElementById('webStage').innerText = "Stage 2/4: Descend Vertically Over Block";
-          document.getElementById('webStage').className = "text-blue-400 font-bold";
+          document.getElementById('webStage').innerText = "Stage 2/4: Vertical Descent Over Target";
+          document.getElementById('webStage').className = "text-sky-400 font-semibold";
         } else if (step < 85) {
           gripperOpen = false;
           ee.y += (100 - ee.y) * 0.08;
           block.x = ee.x; block.y = ee.y + 14;
-          document.getElementById('webStage').innerText = "Stage 3/4: Clamp & Lift Block Off Table";
-          document.getElementById('webStage').className = "text-amber-400 font-bold";
+          document.getElementById('webStage').innerText = "Stage 3/4: Gripper Clamping & Elevation";
+          document.getElementById('webStage').className = "text-amber-400 font-semibold";
         } else {
           gripperOpen = false;
           ee.x += (goal.x - ee.x) * 0.08;
           ee.y += (goal.y - ee.y) * 0.08;
           block.x = ee.x; block.y = ee.y + 14;
-          document.getElementById('webStage').innerText = "Stage 4/4: Transport Block to Goal (SUCCESS!)";
-          document.getElementById('webStage').className = "text-emerald-400 font-bold";
+          document.getElementById('webStage').innerText = "Stage 4/4: Transport to Goal (Goal Reached)";
+          document.getElementById('webStage').className = "text-emerald-400 font-semibold";
         }
       }
 
-      // Block
-      ctx.fillStyle = '#22c55e'; ctx.fillRect(block.x - 14, block.y - 14, 28, 28);
-      ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2.5; ctx.strokeRect(block.x - 14, block.y - 14, 28, 28);
+      // Manipulation Block
+      ctx.fillStyle = '#22c55e'; ctx.fillRect(block.x - 12, block.y - 12, 24, 24);
+      ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2; ctx.strokeRect(block.x - 12, block.y - 12, 24, 24);
 
-      // Arm
-      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 16; ctx.lineCap = 'round';
+      // Arm Linkages (7-DOF Arm Representation)
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.beginPath(); ctx.moveTo(90, 270); ctx.lineTo(120, 160); ctx.lineTo(200, 110); ctx.lineTo(ee.x, ee.y); ctx.stroke();
 
-      // Joints
-      ctx.fillStyle = '#0284c7';
-      ctx.beginPath(); ctx.arc(90, 270, 10, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(120, 160, 9, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(200, 110, 8, 0, Math.PI*2); ctx.fill();
+      // Arm Inner Skeleton
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(90, 270); ctx.lineTo(120, 160); ctx.lineTo(200, 110); ctx.lineTo(ee.x, ee.y); ctx.stroke();
 
-      // Gripper
-      const span = gripperOpen ? 18 : 8;
-      ctx.fillStyle = '#475569'; ctx.fillRect(ee.x - 16, ee.y - 6, 32, 10);
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(ee.x - span - 5, ee.y + 4, 6, 18);
-      ctx.fillRect(ee.x + span - 1, ee.y + 4, 6, 18);
+      // Revolute Joint Crosshairs
+      const joints = [{x: 90, y: 270}, {x: 120, y: 160}, {x: 200, y: 110}];
+      joints.forEach(j => {
+        ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.arc(j.x, j.y, 8, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+      });
+
+      // Gripper Assembly
+      const span = gripperOpen ? 16 : 7;
+      ctx.fillStyle = '#334155'; ctx.fillRect(ee.x - 14, ee.y - 6, 28, 8);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(ee.x - span - 4, ee.y + 2, 5, 16);
+      ctx.fillRect(ee.x + span - 1, ee.y + 2, 5, 16);
 
       document.getElementById('webEE').innerText = `[+${(ee.x/1000).toFixed(2)}, +${(ee.y/1000).toFixed(2)}, +${(ee.z/100).toFixed(2)}]m`;
       document.getElementById('webGrip').innerText = gripperOpen ? "OPEN (100%)" : "CLAMPED (100%)";
