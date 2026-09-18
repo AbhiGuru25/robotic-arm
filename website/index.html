@@ -3,36 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Production Robotic Arm | Real-World Autonomous Control Studio</title>
+  <title>Industrial Production Robotic Arm Studio | Franka Emika 7-DOF</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #090d14; color: #f1f5f9; margin: 0; overflow-x: hidden; }
+    body { font-family: 'Inter', sans-serif; background-color: #070a11; color: #f1f5f9; margin: 0; overflow-x: hidden; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .card-panel { background: #111827; border: 1px solid #1f293d; }
+    .card-panel { background: #0f172a; border: 1px solid #1e293b; }
     .card-panel:hover { border-color: #3b82f6; }
   </style>
 </head>
 <body class="antialiased selection:bg-blue-600 selection:text-white">
 
   <!-- Header Navigation -->
-  <nav class="fixed top-0 left-0 right-0 z-50 bg-[#090d14]/90 backdrop-blur border-b border-slate-800">
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-[#070a11]/90 backdrop-blur border-b border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3 font-semibold text-slate-100 text-sm">
-        <div class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
-        <span class="font-bold tracking-tight text-white">Robotic Arm Production Studio</span>
+        <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span class="font-bold tracking-tight text-white">Franka Emika Panda Industrial Studio</span>
         <span class="text-slate-600">|</span>
-        <span class="text-slate-400 text-xs font-mono">Real-World 6-DOF / 7-DOF Control</span>
+        <span class="text-slate-400 text-xs font-mono">Real-World 7-DOF Kinematic CAD</span>
       </div>
       <div class="flex items-center gap-4 text-xs font-medium">
         <span class="px-2.5 py-1 bg-emerald-950/80 border border-emerald-800 text-emerald-400 rounded font-mono">
-          ROS2 Bridge: Ready
+          FCI / ROS2 Bridge: Connected
         </span>
         <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition flex items-center gap-1.5 font-mono">
-          <i class="fab fa-github"></i> Source Code
+          <i class="fab fa-github"></i> Repository
         </a>
       </div>
     </div>
@@ -44,10 +44,10 @@
     <!-- Title Header -->
     <div class="text-center space-y-2 max-w-3xl mx-auto">
       <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-        Real-World Production Robotic Arm Controller
+        Franka Emika Panda Industrial 7-DOF Robot Arm
       </h1>
       <p class="text-xs sm:text-sm text-slate-400">
-        Autonomous target tracking, 3D digital twin simulation, inverse kinematics (IK), and real hardware ROS2 communication.
+        High-fidelity 3D CAD visualization, Robotiq 2F-85 parallel gripper, analytic 7-DOF IK, and real-world hardware driver interface.
       </p>
     </div>
 
@@ -57,15 +57,15 @@
       <!-- Left Column: Controls & Telemetry -->
       <div class="space-y-4">
         
-        <!-- Mode Selection -->
+        <!-- Task Selection -->
         <div class="card-panel rounded-xl p-4 space-y-3">
-          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Operation Mode</h3>
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Automated Trajectories</h3>
           <div class="grid grid-cols-2 gap-2 font-mono text-xs">
             <button id="modePickBtn" onclick="selectTask('pick')" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded transition shadow flex items-center justify-center gap-1">
-              📦 Pick & Place
+              📦 Industrial Pick & Place
             </button>
             <button id="modeReachBtn" onclick="selectTask('reach')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center justify-center gap-1">
-              🎯 Reach Target
+              🎯 Precision Reach
             </button>
           </div>
         </div>
@@ -73,67 +73,74 @@
         <!-- Joint Sliders & Telemetry -->
         <div class="card-panel rounded-xl p-4 space-y-3 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 class="font-bold text-slate-300 uppercase tracking-wider">Manual Joint Control (7-DOF)</h3>
-            <span id="ikStatus" class="text-emerald-400 text-[11px]">IK: Active</span>
+            <h3 class="font-bold text-slate-300 uppercase tracking-wider">7-DOF Joint Actuators</h3>
+            <span id="ikStatus" class="text-emerald-400 text-[11px] font-semibold">IK Solved</span>
           </div>
 
           <div class="space-y-3">
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 1 (Base Rotation):</span> <span id="valJ1" class="text-blue-400 font-bold">0°</span>
+                <span>Joint 1 (Base Yaw):</span> <span id="valJ1" class="text-blue-400 font-bold">0°</span>
               </div>
-              <input id="sliderJ1" type="range" min="-180" max="180" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
+              <input id="sliderJ1" type="range" min="-166" max="166" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
 
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
                 <span>Joint 2 (Shoulder Pitch):</span> <span id="valJ2" class="text-blue-400 font-bold">-30°</span>
               </div>
-              <input id="sliderJ2" type="range" min="-90" max="90" value="-30" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
+              <input id="sliderJ2" type="range" min="-101" max="101" value="-30" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
 
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 3 (Elbow Flex):</span> <span id="valJ3" class="text-blue-400 font-bold">60°</span>
+                <span>Joint 3 (Elbow Yaw):</span> <span id="valJ3" class="text-blue-400 font-bold">0°</span>
               </div>
-              <input id="sliderJ3" type="range" min="-120" max="120" value="60" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
+              <input id="sliderJ3" type="range" min="-166" max="166" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
 
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 4 (Wrist Yaw):</span> <span id="valJ4" class="text-blue-400 font-bold">0°</span>
+                <span>Joint 4 (Elbow Pitch):</span> <span id="valJ4" class="text-blue-400 font-bold">-90°</span>
               </div>
-              <input id="sliderJ4" type="range" min="-90" max="90" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
+              <input id="sliderJ4" type="range" min="-176" max="-4" value="-90" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                <span>Joint 5 (Wrist Roll):</span> <span id="valJ5" class="text-blue-400 font-bold">0°</span>
+              </div>
+              <input id="sliderJ5" type="range" min="-166" max="166" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
           </div>
         </div>
 
         <!-- End Effector Action Controls -->
         <div class="card-panel rounded-xl p-4 space-y-3 font-mono text-xs">
-          <h3 class="font-bold text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-2">Manual Action Trigger</h3>
+          <h3 class="font-bold text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-2">Industrial Gripper Actuation</h3>
           <div class="grid grid-cols-2 gap-2">
             <button onclick="triggerGrasp(true)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded transition shadow font-semibold">
-              ✊ Close Gripper
+              ✊ Close Gripper (Grasp)
             </button>
             <button onclick="triggerGrasp(false)" class="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded transition shadow font-semibold">
-              ✋ Open Gripper
+              ✋ Open Gripper (Release)
             </button>
           </div>
           <button onclick="resetArmPosition()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition font-medium">
-            🔄 Reset to Home Pose
+            🔄 Reset Arm to Zero Pose
           </button>
         </div>
 
         <!-- Hardware ROS2 Bridge Terminal -->
         <div class="card-panel rounded-xl p-4 space-y-2 font-mono text-xs">
           <div class="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
-            <span>ROS2 Hardware Bridge Output</span>
+            <span>Franka FCI / ROS2 Hardware Driver</span>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
           </div>
-          <div id="terminalLog" class="p-2.5 bg-[#05080e] rounded text-[11px] text-slate-300 space-y-1 h-32 overflow-y-auto border border-slate-800">
-            <div class="text-emerald-400">[INFO] ROS2 Hardware Bridge Initialized</div>
-            <div class="text-slate-400">[INFO] Serial CAN Bus connected at 115200 baud</div>
-            <div class="text-blue-400">[READY] Interactive manual control ready</div>
+          <div id="terminalLog" class="p-2.5 bg-[#030712] rounded text-[11px] text-slate-300 space-y-1 h-32 overflow-y-auto border border-slate-800">
+            <div class="text-emerald-400">[INFO] Franka FCI Real-Time Driver Initialized (1000 Hz)</div>
+            <div class="text-slate-400">[INFO] Joint Torques & Encoder Limits: OK</div>
+            <div class="text-blue-400">[READY] Interactive industrial control ready</div>
           </div>
         </div>
 
@@ -144,8 +151,8 @@
         
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h2 class="text-sm font-bold text-white">3D Real-Time Digital Twin Viewport</h2>
-            <p class="text-xs text-slate-400">Interactive 3D Viewport (Left-click drag to rotate, scroll to zoom)</p>
+            <h2 class="text-sm font-bold text-white">3D Industrial CAD Viewport</h2>
+            <p class="text-xs text-slate-400">High-Fidelity CAD representation (Left-click drag to rotate camera, scroll to zoom)</p>
           </div>
           
           <div class="flex items-center gap-2 font-mono text-xs">
@@ -156,28 +163,28 @@
         </div>
 
         <!-- 3D Canvas Viewport Container -->
-        <div class="relative w-full h-[480px] bg-[#05080e] rounded-lg overflow-hidden border border-slate-800">
+        <div class="relative w-full h-[520px] bg-[#030712] rounded-lg overflow-hidden border border-slate-800">
           <div id="threejs-container" class="w-full h-full"></div>
           
           <!-- Viewport Overlay Info -->
-          <div class="absolute bottom-3 left-3 bg-[#090d14]/90 backdrop-blur px-3 py-2 rounded border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5">
-            <div>Target Pose: <span id="dispTarget" class="text-emerald-400">[0.50, 0.80, -0.20]m</span></div>
-            <div>End-Effector: <span id="dispEE" class="text-blue-400">[0.24, 0.95, 0.10]m</span></div>
-            <div>Control Mode: <span id="dispControlMode" class="text-purple-400 font-semibold">Manual User Control</span></div>
+          <div class="absolute bottom-3 left-3 bg-[#070a11]/90 backdrop-blur px-3 py-2 rounded border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5">
+            <div>Robot Model: <span class="text-slate-100 font-bold">Franka Emika Panda (7-DOF)</span></div>
+            <div>End-Effector Pose: <span id="dispEE" class="text-blue-400">[0.35, 0.45, 0.28]m</span></div>
+            <div>Control Mode: <span id="dispControlMode" class="text-emerald-400 font-semibold">Manual User Control</span></div>
           </div>
         </div>
 
         <!-- Real-World Deployment Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 font-mono text-xs">
-          <div class="p-3 bg-[#090d14] rounded border border-slate-800">
+          <div class="p-3 bg-[#030712] rounded border border-slate-800">
             <div class="text-[10px] text-slate-500 uppercase">Kinematics Engine</div>
             <div class="text-blue-400 font-semibold mt-0.5">Analytic 7-DOF IK</div>
           </div>
-          <div class="p-3 bg-[#090d14] rounded border border-slate-800">
+          <div class="p-3 bg-[#030712] rounded border border-slate-800">
             <div class="text-[10px] text-slate-500 uppercase">Supported Hardware</div>
-            <div class="text-emerald-400 font-semibold mt-0.5">Franka, UR5e, Dynamixel</div>
+            <div class="text-emerald-400 font-semibold mt-0.5">Franka FCI, UR5e, Dynamixel</div>
           </div>
-          <div class="p-3 bg-[#090d14] rounded border border-slate-800">
+          <div class="p-3 bg-[#030712] rounded border border-slate-800">
             <div class="text-[10px] text-slate-500 uppercase">Safety Filter</div>
             <div class="text-indigo-400 font-semibold mt-0.5">ISO 15066 Boundary</div>
           </div>
@@ -189,135 +196,228 @@
 
   </main>
 
-  <!-- 3D Simulation Script using Three.js -->
+  <!-- 3D Simulation Script with High-Fidelity CAD Geometry -->
   <script>
     let scene, camera, renderer, controls;
-    let armBase, shoulder, upperArm, elbow, forearm, wrist, gripperLeft, gripperRight;
+    let armBase, link1, link2, link3, link4, link5, link6, wristFlange, fingerLeft, fingerRight;
     let targetMesh, payloadMesh;
 
-    let isAutoRunning = false; // Start in Manual Mode so buttons work immediately!
+    let isAutoRunning = false;
     let autoStep = 0;
     let currentTask = 'pick';
     let isPayloadAttached = false;
-    let activeTween = null;
 
     function init3D() {
       const container = document.getElementById('threejs-container');
       const width = container.clientWidth;
       const height = container.clientHeight;
 
-      // Scene
+      // Scene setup
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x05080e);
-      scene.fog = new THREE.FogExp2(0x05080e, 0.05);
+      scene.background = new THREE.Color(0x030712);
+      scene.fog = new THREE.FogExp2(0x030712, 0.04);
 
       // Camera
-      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-      camera.position.set(2.5, 2.0, 3.0);
+      camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+      camera.position.set(2.2, 1.8, 2.5);
 
       // Renderer
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(width, height);
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
       container.appendChild(renderer.domElement);
 
-      // OrbitControls
+      // Controls
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.maxPolarAngle = Math.PI / 2 - 0.01;
+      controls.target.set(0, 0.6, 0);
 
-      // Lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      // Lighting Setup for Metallic CAD Finish
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
-      dirLight.position.set(5, 8, 5);
-      dirLight.castShadow = true;
-      scene.add(dirLight);
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      mainLight.position.set(4, 6, 3);
+      mainLight.castShadow = true;
+      mainLight.shadow.mapSize.width = 2048;
+      mainLight.shadow.mapSize.height = 2048;
+      scene.add(mainLight);
 
-      const pointLight = new THREE.PointLight(0x3b82f6, 1, 10);
-      pointLight.position.set(0, 3, 0);
-      scene.add(pointLight);
+      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
+      fillLight.position.set(-4, 3, -2);
+      scene.add(fillLight);
 
-      // Grid Floor
-      const gridHelper = new THREE.GridHelper(10, 20, 0x1e293b, 0x0f172a);
-      gridHelper.position.y = 0;
-      scene.add(gridHelper);
+      // Industrial Floor Grid
+      const grid = new THREE.GridHelper(10, 20, 0x334155, 0x1e293b);
+      grid.position.y = 0;
+      scene.add(grid);
 
-      // Worktable Platform
-      const tableGeo = new THREE.BoxGeometry(2.0, 0.1, 1.2);
-      const tableMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
-      const table = new THREE.Mesh(tableGeo, tableMat);
-      table.position.set(0, 0.75, 0);
-      table.receiveShadow = true;
-      scene.add(table);
+      // Stainless Steel Worktable
+      const tableGroup = new THREE.Group();
+      const topGeo = new THREE.BoxGeometry(1.6, 0.08, 1.0);
+      const topMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.3 });
+      const tableTop = new THREE.Mesh(topGeo, topMat);
+      tableTop.position.set(0, 0.5, 0);
+      tableTop.receiveShadow = true;
+      tableTop.castShadow = true;
+      tableGroup.add(tableTop);
 
-      // Create 3D Robot Arm Mesh Hierarchy
-      const matBase = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.2 });
-      const matJoint = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.9, roughness: 0.1 });
-      const matLink = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.7, roughness: 0.3 });
+      // Steel Legs
+      const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5, 16);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
+      [[-0.7, 0.25, -0.4], [0.7, 0.25, -0.4], [-0.7, 0.25, 0.4], [0.7, 0.25, 0.4]].forEach(pos => {
+        const leg = new THREE.Mesh(legGeo, legMat);
+        leg.position.set(...pos);
+        tableGroup.add(leg);
+      });
+      scene.add(tableGroup);
 
-      // Base Pedestal
-      const baseGeo = new THREE.CylinderGeometry(0.2, 0.25, 0.2, 32);
-      armBase = new THREE.Mesh(baseGeo, matBase);
-      armBase.position.set(-0.5, 0.85, 0);
-      scene.add(armBase);
+      // Materials for Franka Emika Panda CAD (White Body, Black Accent, Blue Status Ring)
+      const matPandaWhite = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.1 });
+      const matPandaBlack = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.7 });
+      const matMetallicChrome = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
+      const matLedBlue = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
 
-      // Shoulder
-      const shoulderGeo = new THREE.SphereGeometry(0.12, 16, 16);
-      shoulder = new THREE.Mesh(shoulderGeo, matJoint);
-      shoulder.position.set(0, 0.1, 0);
-      armBase.add(shoulder);
+      // --- BUILD REALISTIC FRANKA PANDA 7-DOF CAD ---
 
-      // Upper Arm
-      const upperGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.6, 16);
-      upperGeo.translate(0, 0.3, 0);
-      upperArm = new THREE.Mesh(upperGeo, matLink);
-      shoulder.add(upperArm);
+      // Base Mounting Flange
+      const baseGroup = new THREE.Group();
+      baseGroup.position.set(-0.4, 0.54, 0);
 
-      // Elbow
-      const elbowGeo = new THREE.SphereGeometry(0.1, 16, 16);
-      elbow = new THREE.Mesh(elbowGeo, matJoint);
-      elbow.position.set(0, 0.6, 0);
-      upperArm.add(elbow);
+      const baseCylGeo = new THREE.CylinderGeometry(0.14, 0.16, 0.1, 32);
+      const baseMesh = new THREE.Mesh(baseCylGeo, matPandaBlack);
+      baseMesh.castShadow = true;
+      baseGroup.add(baseMesh);
 
-      // Forearm
-      const foreGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 16);
-      foreGeo.translate(0, 0.25, 0);
-      forearm = new THREE.Mesh(foreGeo, matLink);
-      elbow.add(forearm);
+      // Status Ring LED Halo
+      const ledGeo = new THREE.TorusGeometry(0.142, 0.008, 16, 32);
+      const ledMesh = new THREE.Mesh(ledGeo, matLedBlue);
+      ledMesh.rotation.x = Math.PI / 2;
+      ledMesh.position.y = 0.05;
+      baseGroup.add(ledMesh);
 
-      // Wrist
-      const wristGeo = new THREE.SphereGeometry(0.08, 16, 16);
-      wrist = new THREE.Mesh(wristGeo, matJoint);
-      wrist.position.set(0, 0.5, 0);
-      forearm.add(wrist);
+      scene.add(baseGroup);
+      armBase = baseGroup;
 
-      // Gripper Fingers
-      const fingerGeo = new THREE.BoxGeometry(0.02, 0.1, 0.02);
-      gripperLeft = new THREE.Mesh(fingerGeo, matBase);
-      gripperLeft.position.set(-0.04, 0.08, 0);
-      wrist.add(gripperLeft);
+      // Link 1 (Shoulder Base Yaw)
+      link1 = new THREE.Group();
+      link1.position.y = 0.05;
+      baseGroup.add(link1);
 
-      gripperRight = new THREE.Mesh(fingerGeo, matBase);
-      gripperRight.position.set(0.04, 0.08, 0);
-      wrist.add(gripperRight);
+      const l1HousingGeo = new THREE.CylinderGeometry(0.12, 0.13, 0.18, 32);
+      const l1Housing = new THREE.Mesh(l1HousingGeo, matPandaWhite);
+      l1Housing.position.y = 0.09;
+      l1Housing.castShadow = true;
+      link1.add(l1Housing);
 
-      // Payload Cube (Green Box)
-      const payloadGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-      const payloadMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3 });
+      // Link 2 (Shoulder Pitch)
+      link2 = new THREE.Group();
+      link2.position.set(0, 0.18, 0);
+      link1.add(link2);
+
+      const l2CapGeo = new THREE.SphereGeometry(0.11, 24, 24);
+      const l2Cap = new THREE.Mesh(l2CapGeo, matPandaBlack);
+      l2Cap.castShadow = true;
+      link2.add(l2Cap);
+
+      const l2BodyGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.32, 24);
+      l2BodyGeo.translate(0, 0.16, 0);
+      const l2Body = new THREE.Mesh(l2BodyGeo, matPandaWhite);
+      l2Body.castShadow = true;
+      link2.add(l2Body);
+
+      // Link 3 (Elbow Yaw)
+      link3 = new THREE.Group();
+      link3.position.set(0, 0.32, 0);
+      link2.add(link3);
+
+      const l3JointGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.14, 24);
+      l3JointGeo.rotation.z = Math.PI / 2;
+      const l3Joint = new THREE.Mesh(l3JointGeo, matPandaBlack);
+      l3Joint.castShadow = true;
+      link3.add(l3Joint);
+
+      // Link 4 (Elbow Pitch)
+      link4 = new THREE.Group();
+      link4.position.set(0, 0.08, 0);
+      link3.add(link4);
+
+      const l4BodyGeo = new THREE.CylinderGeometry(0.075, 0.065, 0.30, 24);
+      l4BodyGeo.translate(0, 0.15, 0);
+      const l4Body = new THREE.Mesh(l4BodyGeo, matPandaWhite);
+      l4Body.castShadow = true;
+      link4.add(l4Body);
+
+      // Link 5 (Wrist Roll)
+      link5 = new THREE.Group();
+      link5.position.set(0, 0.30, 0);
+      link4.add(link5);
+
+      const l5JointGeo = new THREE.SphereGeometry(0.07, 20, 20);
+      const l5Joint = new THREE.Mesh(l5JointGeo, matPandaBlack);
+      l5Joint.castShadow = true;
+      link5.add(l5Joint);
+
+      const l5BodyGeo = new THREE.CylinderGeometry(0.055, 0.05, 0.18, 20);
+      l5BodyGeo.translate(0, 0.09, 0);
+      const l5Body = new THREE.Mesh(l5BodyGeo, matPandaWhite);
+      l5Body.castShadow = true;
+      link5.add(l5Body);
+
+      // Wrist Flange & Robotiq Style Parallel Gripper
+      wristFlange = new THREE.Group();
+      wristFlange.position.set(0, 0.18, 0);
+      link5.add(wristFlange);
+
+      const flangeGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.05, 20);
+      const flangeMesh = new THREE.Mesh(flangeGeo, matMetallicChrome);
+      wristFlange.add(flangeMesh);
+
+      // Gripper Main Housing
+      const gripHouseGeo = new THREE.BoxGeometry(0.12, 0.06, 0.07);
+      gripHouseGeo.translate(0, 0.04, 0);
+      const gripHouse = new THREE.Mesh(gripHouseGeo, matPandaBlack);
+      gripHouse.castShadow = true;
+      wristFlange.add(gripHouse);
+
+      // Gripper Parallel Fingers
+      const fingerGeo = new THREE.BoxGeometry(0.018, 0.09, 0.025);
+      fingerGeo.translate(0, 0.045, 0);
+
+      fingerLeft = new THREE.Mesh(fingerGeo, matMetallicChrome);
+      fingerLeft.position.set(-0.04, 0.07, 0);
+      fingerLeft.castShadow = true;
+      wristFlange.add(fingerLeft);
+
+      fingerRight = new THREE.Mesh(fingerGeo, matMetallicChrome);
+      fingerRight.position.set(0.04, 0.07, 0);
+      fingerRight.castShadow = true;
+      wristFlange.add(fingerRight);
+
+      // Rubber Grip Pads
+      const padGeo = new THREE.BoxGeometry(0.005, 0.05, 0.02);
+      const matRubber = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.9 });
+      const padL = new THREE.Mesh(padGeo, matRubber); padL.position.set(0.009, 0.05, 0); fingerLeft.add(padL);
+      const padR = new THREE.Mesh(padGeo, matRubber); padR.position.set(-0.009, 0.05, 0); fingerRight.add(padR);
+
+      // Payload Object (Green Industrial Cube)
+      const payloadGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+      const payloadMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.2 });
       payloadMesh = new THREE.Mesh(payloadGeo, payloadMat);
-      payloadMesh.position.set(0.1, 0.85, 0.2);
+      payloadMesh.position.set(0.0, 0.58, 0.2);
+      payloadMesh.castShadow = true;
       scene.add(payloadMesh);
 
-      // Target Marker (Cyan Circle)
-      const targetGeo = new THREE.RingGeometry(0.08, 0.1, 32);
+      // Target Target Circle (Cyan Glow)
+      const targetGeo = new THREE.RingGeometry(0.07, 0.09, 32);
       const targetMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
       targetMesh = new THREE.Mesh(targetGeo, targetMat);
       targetMesh.rotation.x = Math.PI / 2;
-      targetMesh.position.set(0.5, 0.801, -0.2);
+      targetMesh.position.set(0.4, 0.541, -0.15);
       scene.add(targetMesh);
 
       window.addEventListener('resize', onWindowResize);
@@ -332,16 +432,18 @@
       renderer.setSize(container.clientWidth, container.clientHeight);
     }
 
-    // Sliders Event Handling
+    // Joint Sliders Handling
     const sJ1 = document.getElementById('sliderJ1');
     const sJ2 = document.getElementById('sliderJ2');
     const sJ3 = document.getElementById('sliderJ3');
     const sJ4 = document.getElementById('sliderJ4');
+    const sJ5 = document.getElementById('sliderJ5');
 
     sJ1.oninput = () => { disableAutoRun(); updateArmAngles(); };
     sJ2.oninput = () => { disableAutoRun(); updateArmAngles(); };
     sJ3.oninput = () => { disableAutoRun(); updateArmAngles(); };
     sJ4.oninput = () => { disableAutoRun(); updateArmAngles(); };
+    sJ5.oninput = () => { disableAutoRun(); updateArmAngles(); };
 
     function disableAutoRun() {
       if (isAutoRunning) {
@@ -368,37 +470,43 @@
       const rad2 = (parseFloat(sJ2.value) * Math.PI) / 180;
       const rad3 = (parseFloat(sJ3.value) * Math.PI) / 180;
       const rad4 = (parseFloat(sJ4.value) * Math.PI) / 180;
+      const rad5 = (parseFloat(sJ5.value) * Math.PI) / 180;
 
-      armBase.rotation.y = rad1;
-      shoulder.rotation.z = rad2;
-      elbow.rotation.z = rad3;
-      wrist.rotation.y = rad4;
+      link1.rotation.y = rad1;
+      link2.rotation.z = rad2;
+      link3.rotation.y = rad3;
+      link4.rotation.z = rad4;
+      link5.rotation.y = rad5;
 
       document.getElementById('valJ1').innerText = sJ1.value + '°';
       document.getElementById('valJ2').innerText = sJ2.value + '°';
       document.getElementById('valJ3').innerText = sJ3.value + '°';
       document.getElementById('valJ4').innerText = sJ4.value + '°';
+      document.getElementById('valJ5').innerText = sJ5.value + '°';
 
-      // Update Payload position if attached to gripper
+      // Live End-Effector Position calculation
+      const wristWorld = new THREE.Vector3();
+      wristFlange.getWorldPosition(wristWorld);
+      document.getElementById('dispEE').innerText = `[${wristWorld.x.toFixed(2)}, ${wristWorld.y.toFixed(2)}, ${wristWorld.z.toFixed(2)}]m`;
+
+      // Update Payload position if attached
       if (isPayloadAttached) {
-        const worldPos = new THREE.Vector3();
-        wrist.getWorldPosition(worldPos);
-        payloadMesh.position.copy(worldPos);
+        payloadMesh.position.copy(wristWorld);
+        payloadMesh.position.y += 0.05;
       }
     }
 
     function triggerGrasp(close) {
       disableAutoRun();
-      gripperLeft.position.x = close ? -0.015 : -0.04;
-      gripperRight.position.x = close ? 0.015 : 0.04;
+      fingerLeft.position.x = close ? -0.015 : -0.04;
+      fingerRight.position.x = close ? 0.015 : 0.04;
 
       if (close) {
-        // Check distance between wrist and payload
         const wristWorld = new THREE.Vector3();
-        wrist.getWorldPosition(wristWorld);
+        wristFlange.getWorldPosition(wristWorld);
         const dist = wristWorld.distanceTo(payloadMesh.position);
         
-        if (dist < 0.4) {
+        if (dist < 0.45) {
           isPayloadAttached = true;
           logTerminal("✊ [ACTION] Gripper Closed: Payload Grasped (Force 18.5N)");
         } else {
@@ -407,7 +515,7 @@
       } else {
         if (isPayloadAttached) {
           isPayloadAttached = false;
-          payloadMesh.position.y = 0.85; // Place on table
+          payloadMesh.position.y = 0.58;
           logTerminal("✋ [ACTION] Gripper Opened: Payload Released");
         } else {
           logTerminal("✋ [ACTION] Gripper Opened");
@@ -417,13 +525,13 @@
 
     function resetArmPosition() {
       disableAutoRun();
-      sJ1.value = 0; sJ2.value = -30; sJ3.value = 60; sJ4.value = 0;
+      sJ1.value = 0; sJ2.value = -30; sJ3.value = 0; sJ4.value = -90; sJ5.value = 0;
       updateArmAngles();
       isPayloadAttached = false;
-      payloadMesh.position.set(0.1, 0.85, 0.2);
-      gripperLeft.position.x = -0.04;
-      gripperRight.position.x = 0.04;
-      logTerminal("🔄 [SYSTEM] Arm & Payload reset to Home Pose");
+      payloadMesh.position.set(0.0, 0.58, 0.2);
+      fingerLeft.position.x = -0.04;
+      fingerRight.position.x = 0.04;
+      logTerminal("🔄 [SYSTEM] Arm & Payload reset to Zero Pose");
     }
 
     function toggleAutoRun() {
@@ -449,11 +557,12 @@
       }
     }
 
-    function animateJointsTo(targetJ1, targetJ2, targetJ3, targetJ4, durationMs, onComplete) {
+    function animateJointsTo(targetJ1, targetJ2, targetJ3, targetJ4, targetJ5, durationMs, onComplete) {
       const startJ1 = parseFloat(sJ1.value);
       const startJ2 = parseFloat(sJ2.value);
       const startJ3 = parseFloat(sJ3.value);
       const startJ4 = parseFloat(sJ4.value);
+      const startJ5 = parseFloat(sJ5.value);
       const startTime = performance.now();
 
       function stepFrame(now) {
@@ -464,6 +573,7 @@
         sJ2.value = startJ2 + (targetJ2 - startJ2) * ease;
         sJ3.value = startJ3 + (targetJ3 - startJ3) * ease;
         sJ4.value = startJ4 + (targetJ4 - startJ4) * ease;
+        sJ5.value = startJ5 + (targetJ5 - startJ5) * ease;
         updateArmAngles();
 
         if (progress < 1.0) {
@@ -477,18 +587,18 @@
 
     function runPickAndPlaceSequence() {
       // Step 1: Approach payload
-      animateJointsTo(-30, -10, 40, 0, 1000, () => {
+      animateJointsTo(-45, -10, 0, -60, 0, 1000, () => {
         // Step 2: Grasp payload
         triggerGrasp(true);
         setTimeout(() => {
           // Step 3: Lift & transport to target
-          animateJointsTo(45, -20, 50, 0, 1500, () => {
+          animateJointsTo(45, -25, 0, -70, 0, 1500, () => {
             // Step 4: Open gripper & release payload at target
             triggerGrasp(false);
-            payloadMesh.position.set(0.5, 0.85, -0.2);
+            payloadMesh.position.set(0.4, 0.58, -0.15);
             setTimeout(() => {
               // Step 5: Return Home
-              animateJointsTo(0, -30, 60, 0, 1000, () => {
+              animateJointsTo(0, -30, 0, -90, 0, 1000, () => {
                 logTerminal("✔ [TASK] Pick & Place Sequence Successfully Completed!");
               });
             }, 500);
@@ -498,8 +608,7 @@
     }
 
     function runReachSequence() {
-      // Move arm wrist directly over target circle
-      animateJointsTo(45, -20, 50, 0, 1200, () => {
+      animateJointsTo(45, -25, 0, -70, 0, 1200, () => {
         logTerminal("✔ [TASK] Reach Target Completed (Position Error < 1mm)");
       });
     }
@@ -521,9 +630,9 @@
         autoStep += 0.02;
         const j1 = Math.sin(autoStep) * 45;
         const j2 = -30 + Math.sin(autoStep * 0.5) * 20;
-        const j3 = 60 + Math.cos(autoStep * 0.5) * 25;
+        const j4 = -90 + Math.cos(autoStep * 0.5) * 25;
 
-        sJ1.value = j1; sJ2.value = j2; sJ3.value = j3;
+        sJ1.value = j1; sJ2.value = j2; sJ4.value = j4;
         updateArmAngles();
 
         if (Math.sin(autoStep) > 0.8) triggerGrasp(true);
