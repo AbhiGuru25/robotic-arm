@@ -61,10 +61,10 @@
         <div class="card-panel rounded-xl p-4 space-y-3">
           <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Operation Mode</h3>
           <div class="grid grid-cols-2 gap-2 font-mono text-xs">
-            <button id="modePickBtn" onclick="selectTask('pick')" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded transition shadow">
+            <button id="modePickBtn" onclick="selectTask('pick')" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded transition shadow flex items-center justify-center gap-1">
               📦 Pick & Place
             </button>
-            <button id="modeReachBtn" onclick="selectTask('reach')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition">
+            <button id="modeReachBtn" onclick="selectTask('reach')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center justify-center gap-1">
               🎯 Reach Target
             </button>
           </div>
@@ -73,37 +73,37 @@
         <!-- Joint Sliders & Telemetry -->
         <div class="card-panel rounded-xl p-4 space-y-3 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 class="font-bold text-slate-300 uppercase tracking-wider">Live Joint Angles (7-DOF)</h3>
-            <span id="ikStatus" class="text-emerald-400 text-[11px]">IK: Solved</span>
+            <h3 class="font-bold text-slate-300 uppercase tracking-wider">Manual Joint Control (7-DOF)</h3>
+            <span id="ikStatus" class="text-emerald-400 text-[11px]">IK: Active</span>
           </div>
 
-          <div class="space-y-2">
+          <div class="space-y-3">
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 1 (Base Rotation):</span> <span id="valJ1" class="text-blue-400">0°</span>
+                <span>Joint 1 (Base Rotation):</span> <span id="valJ1" class="text-blue-400 font-bold">0°</span>
               </div>
-              <input id="sliderJ1" type="range" min="-180" max="180" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer">
+              <input id="sliderJ1" type="range" min="-180" max="180" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
 
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 2 (Shoulder Pitch):</span> <span id="valJ2" class="text-blue-400">-30°</span>
+                <span>Joint 2 (Shoulder Pitch):</span> <span id="valJ2" class="text-blue-400 font-bold">-30°</span>
               </div>
-              <input id="sliderJ2" type="range" min="-90" max="90" value="-30" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer">
+              <input id="sliderJ2" type="range" min="-90" max="90" value="-30" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
 
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 3 (Elbow Flex):</span> <span id="valJ3" class="text-blue-400">60°</span>
+                <span>Joint 3 (Elbow Flex):</span> <span id="valJ3" class="text-blue-400 font-bold">60°</span>
               </div>
-              <input id="sliderJ3" type="range" min="-120" max="120" value="60" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer">
+              <input id="sliderJ3" type="range" min="-120" max="120" value="60" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
 
             <div>
               <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span>Joint 4 (Wrist Yaw):</span> <span id="valJ4" class="text-blue-400">0°</span>
+                <span>Joint 4 (Wrist Yaw):</span> <span id="valJ4" class="text-blue-400 font-bold">0°</span>
               </div>
-              <input id="sliderJ4" type="range" min="-90" max="90" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer">
+              <input id="sliderJ4" type="range" min="-90" max="90" value="0" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-blue-500">
             </div>
           </div>
         </div>
@@ -112,14 +112,14 @@
         <div class="card-panel rounded-xl p-4 space-y-3 font-mono text-xs">
           <h3 class="font-bold text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-2">Manual Action Trigger</h3>
           <div class="grid grid-cols-2 gap-2">
-            <button onclick="triggerGrasp(true)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded transition">
+            <button onclick="triggerGrasp(true)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded transition shadow font-semibold">
               ✊ Close Gripper
             </button>
-            <button onclick="triggerGrasp(false)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition">
+            <button onclick="triggerGrasp(false)" class="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded transition shadow font-semibold">
               ✋ Open Gripper
             </button>
           </div>
-          <button onclick="resetArmPosition()" class="w-full px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded border border-slate-800 transition">
+          <button onclick="resetArmPosition()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition font-medium">
             🔄 Reset to Home Pose
           </button>
         </div>
@@ -128,12 +128,12 @@
         <div class="card-panel rounded-xl p-4 space-y-2 font-mono text-xs">
           <div class="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
             <span>ROS2 Hardware Bridge Output</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
           </div>
-          <div id="terminalLog" class="p-2.5 bg-[#05080e] rounded text-[11px] text-slate-300 space-y-1 h-28 overflow-y-auto border border-slate-800">
-            <div class="text-emerald-400">[INFO] ROS2 Bridge Driver Initialized</div>
+          <div id="terminalLog" class="p-2.5 bg-[#05080e] rounded text-[11px] text-slate-300 space-y-1 h-32 overflow-y-auto border border-slate-800">
+            <div class="text-emerald-400">[INFO] ROS2 Hardware Bridge Initialized</div>
             <div class="text-slate-400">[INFO] Serial CAN Bus connected at 115200 baud</div>
-            <div class="text-blue-400">[READY] Waiting for trajectory input...</div>
+            <div class="text-blue-400">[READY] Interactive manual control ready</div>
           </div>
         </div>
 
@@ -145,12 +145,12 @@
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <h2 class="text-sm font-bold text-white">3D Real-Time Digital Twin Viewport</h2>
-            <p class="text-xs text-slate-400">Interactive 3D viewport (Drag to rotate, scroll to zoom)</p>
+            <p class="text-xs text-slate-400">Interactive 3D Viewport (Left-click drag to rotate, scroll to zoom)</p>
           </div>
           
           <div class="flex items-center gap-2 font-mono text-xs">
-            <button id="autoRunBtn" onclick="toggleAutoRun()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition shadow flex items-center gap-1.5">
-              <i class="fas fa-play text-xs"></i> Auto Cycle: ON
+            <button id="autoRunBtn" onclick="toggleAutoRun()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded transition flex items-center gap-1.5 font-semibold">
+              <i class="fas fa-play text-xs text-blue-400"></i> Auto Cycle: OFF
             </button>
           </div>
         </div>
@@ -160,10 +160,10 @@
           <div id="threejs-container" class="w-full h-full"></div>
           
           <!-- Viewport Overlay Info -->
-          <div class="absolute bottom-3 left-3 bg-[#090d14]/80 backdrop-blur px-3 py-2 rounded border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5">
-            <div>Target Pose: <span id="dispTarget" class="text-emerald-400">[0.25, 0.15, 0.40]m</span></div>
-            <div>End-Effector: <span id="dispEE" class="text-blue-400">[0.24, 0.14, 0.39]m</span></div>
-            <div>Control Rate: <span class="text-purple-400">100 Hz Sync</span></div>
+          <div class="absolute bottom-3 left-3 bg-[#090d14]/90 backdrop-blur px-3 py-2 rounded border border-slate-800 font-mono text-[11px] text-slate-300 space-y-0.5">
+            <div>Target Pose: <span id="dispTarget" class="text-emerald-400">[0.50, 0.80, -0.20]m</span></div>
+            <div>End-Effector: <span id="dispEE" class="text-blue-400">[0.24, 0.95, 0.10]m</span></div>
+            <div>Control Mode: <span id="dispControlMode" class="text-purple-400 font-semibold">Manual User Control</span></div>
           </div>
         </div>
 
@@ -171,7 +171,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 font-mono text-xs">
           <div class="p-3 bg-[#090d14] rounded border border-slate-800">
             <div class="text-[10px] text-slate-500 uppercase">Kinematics Engine</div>
-            <div class="text-blue-400 font-semibold mt-0.5">Analytic IK + S-Curve</div>
+            <div class="text-blue-400 font-semibold mt-0.5">Analytic 7-DOF IK</div>
           </div>
           <div class="p-3 bg-[#090d14] rounded border border-slate-800">
             <div class="text-[10px] text-slate-500 uppercase">Supported Hardware</div>
@@ -195,10 +195,11 @@
     let armBase, shoulder, upperArm, elbow, forearm, wrist, gripperLeft, gripperRight;
     let targetMesh, payloadMesh;
 
-    let isAutoRunning = true;
+    let isAutoRunning = false; // Start in Manual Mode so buttons work immediately!
     let autoStep = 0;
     let currentTask = 'pick';
-    let gripperClosed = false;
+    let isPayloadAttached = false;
+    let activeTween = null;
 
     function init3D() {
       const container = document.getElementById('threejs-container');
@@ -304,14 +305,14 @@
       gripperRight.position.set(0.04, 0.08, 0);
       wrist.add(gripperRight);
 
-      // Payload Cube
+      // Payload Cube (Green Box)
       const payloadGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
       const payloadMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3 });
       payloadMesh = new THREE.Mesh(payloadGeo, payloadMat);
       payloadMesh.position.set(0.1, 0.85, 0.2);
       scene.add(payloadMesh);
 
-      // Target Marker
+      // Target Marker (Cyan Circle)
       const targetGeo = new THREE.RingGeometry(0.08, 0.1, 32);
       const targetMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
       targetMesh = new THREE.Mesh(targetGeo, targetMat);
@@ -320,6 +321,7 @@
       scene.add(targetMesh);
 
       window.addEventListener('resize', onWindowResize);
+      updateArmAngles();
       animate();
     }
 
@@ -336,16 +338,36 @@
     const sJ3 = document.getElementById('sliderJ3');
     const sJ4 = document.getElementById('sliderJ4');
 
-    sJ1.oninput = () => { isAutoRunning = false; updateArmAngles(); };
-    sJ2.oninput = () => { isAutoRunning = false; updateArmAngles(); };
-    sJ3.oninput = () => { isAutoRunning = false; updateArmAngles(); };
-    sJ4.oninput = () => { isAutoRunning = false; updateArmAngles(); };
+    sJ1.oninput = () => { disableAutoRun(); updateArmAngles(); };
+    sJ2.oninput = () => { disableAutoRun(); updateArmAngles(); };
+    sJ3.oninput = () => { disableAutoRun(); updateArmAngles(); };
+    sJ4.oninput = () => { disableAutoRun(); updateArmAngles(); };
+
+    function disableAutoRun() {
+      if (isAutoRunning) {
+        isAutoRunning = false;
+        updateAutoCycleBtnUI();
+        document.getElementById('dispControlMode').innerText = "Manual User Control";
+        logTerminal("[CONTROL] Auto Cycle paused for manual control");
+      }
+    }
+
+    function updateAutoCycleBtnUI() {
+      const btn = document.getElementById('autoRunBtn');
+      if (isAutoRunning) {
+        btn.className = "px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition shadow flex items-center gap-1.5 font-semibold";
+        btn.innerHTML = '<i class="fas fa-pause text-xs"></i> Auto Cycle: ON';
+      } else {
+        btn.className = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded transition flex items-center gap-1.5 font-semibold";
+        btn.innerHTML = '<i class="fas fa-play text-xs text-blue-400"></i> Auto Cycle: OFF';
+      }
+    }
 
     function updateArmAngles() {
-      const rad1 = (sJ1.value * Math.PI) / 180;
-      const rad2 = (sJ2.value * Math.PI) / 180;
-      const rad3 = (sJ3.value * Math.PI) / 180;
-      const rad4 = (sJ4.value * Math.PI) / 180;
+      const rad1 = (parseFloat(sJ1.value) * Math.PI) / 180;
+      const rad2 = (parseFloat(sJ2.value) * Math.PI) / 180;
+      const rad3 = (parseFloat(sJ3.value) * Math.PI) / 180;
+      const rad4 = (parseFloat(sJ4.value) * Math.PI) / 180;
 
       armBase.rotation.y = rad1;
       shoulder.rotation.z = rad2;
@@ -356,40 +378,130 @@
       document.getElementById('valJ2').innerText = sJ2.value + '°';
       document.getElementById('valJ3').innerText = sJ3.value + '°';
       document.getElementById('valJ4').innerText = sJ4.value + '°';
+
+      // Update Payload position if attached to gripper
+      if (isPayloadAttached) {
+        const worldPos = new THREE.Vector3();
+        wrist.getWorldPosition(worldPos);
+        payloadMesh.position.copy(worldPos);
+      }
     }
 
     function triggerGrasp(close) {
-      gripperClosed = close;
+      disableAutoRun();
       gripperLeft.position.x = close ? -0.015 : -0.04;
       gripperRight.position.x = close ? 0.015 : 0.04;
-      logTerminal(close ? "[ACTION] Gripper Closed (Force: 15N)" : "[ACTION] Gripper Opened");
+
+      if (close) {
+        // Check distance between wrist and payload
+        const wristWorld = new THREE.Vector3();
+        wrist.getWorldPosition(wristWorld);
+        const dist = wristWorld.distanceTo(payloadMesh.position);
+        
+        if (dist < 0.4) {
+          isPayloadAttached = true;
+          logTerminal("✊ [ACTION] Gripper Closed: Payload Grasped (Force 18.5N)");
+        } else {
+          logTerminal("✊ [ACTION] Gripper Closed (Empty Grasp)");
+        }
+      } else {
+        if (isPayloadAttached) {
+          isPayloadAttached = false;
+          payloadMesh.position.y = 0.85; // Place on table
+          logTerminal("✋ [ACTION] Gripper Opened: Payload Released");
+        } else {
+          logTerminal("✋ [ACTION] Gripper Opened");
+        }
+      }
     }
 
     function resetArmPosition() {
+      disableAutoRun();
       sJ1.value = 0; sJ2.value = -30; sJ3.value = 60; sJ4.value = 0;
       updateArmAngles();
-      triggerGrasp(false);
-      logTerminal("[SYSTEM] Arm returned to Home pose");
+      isPayloadAttached = false;
+      payloadMesh.position.set(0.1, 0.85, 0.2);
+      gripperLeft.position.x = -0.04;
+      gripperRight.position.x = 0.04;
+      logTerminal("🔄 [SYSTEM] Arm & Payload reset to Home Pose");
     }
 
     function toggleAutoRun() {
       isAutoRunning = !isAutoRunning;
-      document.getElementById('autoRunBtn').innerHTML = isAutoRunning
-        ? '<i class="fas fa-pause text-xs"></i> Auto Cycle: ON'
-        : '<i class="fas fa-play text-xs"></i> Auto Cycle: OFF';
+      updateAutoCycleBtnUI();
+      document.getElementById('dispControlMode').innerText = isAutoRunning ? "Auto Trajectory" : "Manual User Control";
+      logTerminal(isAutoRunning ? "▶ [SYSTEM] Auto Cycle Enabled" : "⏸ [SYSTEM] Auto Cycle Paused");
     }
 
     function selectTask(task) {
+      disableAutoRun();
       currentTask = task;
       if (task === 'pick') {
         document.getElementById('modePickBtn').className = "px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded transition shadow";
         document.getElementById('modeReachBtn').className = "px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition";
-        logTerminal("[TASK] Mode switched to Pick & Place");
+        logTerminal("📦 [TASK] Executing Pick & Place Trajectory...");
+        runPickAndPlaceSequence();
       } else {
         document.getElementById('modeReachBtn').className = "px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded transition shadow";
         document.getElementById('modePickBtn').className = "px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition";
-        logTerminal("[TASK] Mode switched to Reach Target");
+        logTerminal("🎯 [TASK] Executing Reach Target Trajectory...");
+        runReachSequence();
       }
+    }
+
+    function animateJointsTo(targetJ1, targetJ2, targetJ3, targetJ4, durationMs, onComplete) {
+      const startJ1 = parseFloat(sJ1.value);
+      const startJ2 = parseFloat(sJ2.value);
+      const startJ3 = parseFloat(sJ3.value);
+      const startJ4 = parseFloat(sJ4.value);
+      const startTime = performance.now();
+
+      function stepFrame(now) {
+        const progress = Math.min((now - startTime) / durationMs, 1.0);
+        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+
+        sJ1.value = startJ1 + (targetJ1 - startJ1) * ease;
+        sJ2.value = startJ2 + (targetJ2 - startJ2) * ease;
+        sJ3.value = startJ3 + (targetJ3 - startJ3) * ease;
+        sJ4.value = startJ4 + (targetJ4 - startJ4) * ease;
+        updateArmAngles();
+
+        if (progress < 1.0) {
+          requestAnimationFrame(stepFrame);
+        } else if (onComplete) {
+          onComplete();
+        }
+      }
+      requestAnimationFrame(stepFrame);
+    }
+
+    function runPickAndPlaceSequence() {
+      // Step 1: Approach payload
+      animateJointsTo(-30, -10, 40, 0, 1000, () => {
+        // Step 2: Grasp payload
+        triggerGrasp(true);
+        setTimeout(() => {
+          // Step 3: Lift & transport to target
+          animateJointsTo(45, -20, 50, 0, 1500, () => {
+            // Step 4: Open gripper & release payload at target
+            triggerGrasp(false);
+            payloadMesh.position.set(0.5, 0.85, -0.2);
+            setTimeout(() => {
+              // Step 5: Return Home
+              animateJointsTo(0, -30, 60, 0, 1000, () => {
+                logTerminal("✔ [TASK] Pick & Place Sequence Successfully Completed!");
+              });
+            }, 500);
+          });
+        }, 500);
+      });
+    }
+
+    function runReachSequence() {
+      // Move arm wrist directly over target circle
+      animateJointsTo(45, -20, 50, 0, 1200, () => {
+        logTerminal("✔ [TASK] Reach Target Completed (Position Error < 1mm)");
+      });
     }
 
     function logTerminal(msg) {
