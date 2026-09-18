@@ -348,8 +348,8 @@
       // Horizontal radial distance from base center
       const r = Math.sqrt(dx * dx + dz * dz);
       
-      // Top-down gripper offset compensation (wrist center is 0.18m above end-effector)
-      const wristY = targetY + 0.18;
+      // Top-down gripper offset compensation (wrist center is 0.22m above end-effector contact)
+      const wristY = targetY + 0.22;
       const h = wristY - 0.77; // Base height to shoulder joint
 
       const l1 = 0.36; // Upper arm length
@@ -363,9 +363,9 @@
       const alpha = Math.acos(cosAlpha);
       const beta = Math.acos(cosBeta);
 
-      // Shoulder and elbow pitch angles for forward table reach
+      // Shoulder and elbow pitch angles (elbowAngle MUST be negative to bend down to table!)
       const shoulderAngle = -(Math.atan2(r, h) - alpha);
-      const elbowAngle = Math.PI - beta;
+      const elbowAngle = -(Math.PI - beta); 
       const wristAngle = -(shoulderAngle + elbowAngle);
 
       return { yaw, shoulder: shoulderAngle, elbow: elbowAngle, wrist: wristAngle };
@@ -564,7 +564,7 @@
       if (t < 0.15) {
         // Phase 1: Quintic Smooth Approach to Green Cube
         const s = quinticSmooth(t / 0.15);
-        rawTarget.lerpVectors(new THREE.Vector3(0.10, 0.88, 0.20), new THREE.Vector3(0.10, 0.61, 0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.10, 0.78, 0.20), new THREE.Vector3(0.10, 0.58, 0.20), s);
         gripperWidth = 0.04;
         isCubeAttached = false;
         payloadMesh.position.copy(CUBE_HOME);
@@ -573,7 +573,7 @@
       } else if (t < 0.25) {
         // Phase 2: Parallel-Jaw Contact & Gripper Closure
         const s = quinticSmooth((t - 0.15) / 0.10);
-        rawTarget.set(0.10, 0.61, 0.20);
+        rawTarget.set(0.10, 0.58, 0.20);
         gripperWidth = THREE.MathUtils.lerp(0.04, 0.015, s);
         isCubeAttached = s > 0.5;
         if (!isCubeAttached) payloadMesh.position.copy(CUBE_HOME);
@@ -581,24 +581,24 @@
       } else if (t < 0.40) {
         // Phase 3: Vertical Payload Elevation
         const s = quinticSmooth((t - 0.25) / 0.15);
-        rawTarget.lerpVectors(new THREE.Vector3(0.10, 0.61, 0.20), new THREE.Vector3(0.10, 0.95, 0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.10, 0.58, 0.20), new THREE.Vector3(0.10, 0.78, 0.20), s);
         gripperWidth = 0.015;
         isCubeAttached = true;
         phaseText = "Phase 3: Smooth Vertical Payload Lift";
       } else if (t < 0.65) {
         // Phase 4: Arc Trajectory Transport to Goal
         const s = quinticSmooth((t - 0.40) / 0.25);
-        const startHover = new THREE.Vector3(0.10, 0.95, 0.20);
-        const endHover = new THREE.Vector3(0.40, 0.95, -0.20);
+        const startHover = new THREE.Vector3(0.10, 0.78, 0.20);
+        const endHover = new THREE.Vector3(0.40, 0.78, -0.20);
         rawTarget.lerpVectors(startHover, endHover, s);
-        rawTarget.y += Math.sin(s * Math.PI) * 0.10; // Arc lift curve
+        rawTarget.y += Math.sin(s * Math.PI) * 0.08; // Arc lift curve (peak height 0.86m)
         gripperWidth = 0.015;
         isCubeAttached = true;
         phaseText = "Phase 4: Autonomous Arc Trajectory Transport";
       } else if (t < 0.78) {
         // Phase 5: Decelerated Precision Placement into Target Circle Ring
         const s = quinticSmooth((t - 0.65) / 0.13);
-        rawTarget.lerpVectors(new THREE.Vector3(0.40, 0.95, -0.20), new THREE.Vector3(0.40, 0.58, -0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.40, 0.78, -0.20), new THREE.Vector3(0.40, 0.58, -0.20), s);
         gripperWidth = 0.015;
         isCubeAttached = true;
         phaseText = "Phase 5: Decelerated Precision Placement";
@@ -614,7 +614,7 @@
       } else {
         // Phase 7: Retracting Arm & Cycle Reset
         const s = quinticSmooth((t - 0.88) / 0.12);
-        rawTarget.lerpVectors(new THREE.Vector3(0.40, 0.58, -0.20), new THREE.Vector3(0.10, 0.88, 0.20), s);
+        rawTarget.lerpVectors(new THREE.Vector3(0.40, 0.58, -0.20), new THREE.Vector3(0.10, 0.78, 0.20), s);
         gripperWidth = 0.04;
         isCubeAttached = false;
         payloadMesh.position.set(0.40, 0.58, -0.20);
