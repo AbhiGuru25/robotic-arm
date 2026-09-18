@@ -49,7 +49,7 @@
   </nav>
 
   <!-- Paper Title & Authors Header -->
-  <header id="abstract" class="pt-28 pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
+  <header id="abstract" class="pt-28 pb-12 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
     <div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-mono">
       <span>IEEE Style Empirical Research Paper</span>
     </div>
@@ -65,7 +65,7 @@
     </div>
 
     <!-- Action Pills -->
-    <div class="flex flex-wrap items-center justify-center gap-3 pt-3">
+    <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
       <a href="https://github.com/AbhiGuru25/robotic-arm.git" target="_blank" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded border border-slate-700 transition flex items-center gap-2">
         <i class="fab fa-github"></i> GitHub Repository
       </a>
@@ -78,7 +78,7 @@
     </div>
 
     <!-- Abstract Box -->
-    <div class="mt-8 academic-card rounded-lg p-6 text-left space-y-3 text-slate-300 text-sm leading-relaxed border-l-4 border-l-blue-500 max-w-4xl mx-auto">
+    <div class="mt-6 academic-card rounded-lg p-6 text-left space-y-3 text-slate-300 text-sm leading-relaxed border-l-4 border-l-blue-500 max-w-4xl mx-auto">
       <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Abstract</h3>
       <p>
         Autonomous robotic manipulation in continuous action spaces with sparse rewards presents a fundamental challenge for model-free Deep Reinforcement Learning (DRL). Under binary sparse rewards ($r = 0$ upon task completion, $r = -1$ otherwise), conventional exploration algorithms suffer from extreme sample inefficiency and failure to compute non-zero gradients. In this paper, we present a comparative empirical study evaluating four landmark DRL algorithms—<strong>Deep Deterministic Policy Gradient (DDPG)</strong>, <strong>Twin Delayed DDPG (TD3)</strong>, <strong>Soft Actor-Critic (SAC)</strong>, and <strong>Proximal Policy Optimization (PPO)</strong>—augmented with <strong>Hindsight Experience Replay (HER)</strong> on a 7-DOF Franka Emika Panda robotic arm executing goal-conditioned pick-and-place tasks (<code>PandaPickAndPlace-v3</code>). Over 1,000,000 training steps, our proposed <strong>SAC + HER</strong> architecture achieves a peak success rate of <strong>78.0%</strong>, demonstrating superior exploration and sample efficiency over deterministic off-policy baselines.
@@ -86,15 +86,13 @@
     </div>
   </header>
 
-  <!-- Interactive Telemetry Section -->
+  <!-- Interactive Telemetry Section (FIXED NO-OVERLAP LAYOUT) -->
   <section id="simulator" class="py-10 max-w-5xl mx-auto px-4 sm:px-6">
     <div class="academic-card rounded-xl p-5 space-y-4">
       
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
         <div>
-          <h2 class="text-base font-bold text-white flex items-center gap-2">
-            <span>Operational Space Kinematics & Telemetry Simulator</span>
-          </h2>
+          <h2 class="text-base font-bold text-white">Operational Space Kinematics & Telemetry Simulator</h2>
           <p class="text-xs text-slate-400">Interactive 2D vector kinematics visualization of 7-DOF Franka arm trajectory execution</p>
         </div>
 
@@ -104,26 +102,38 @@
         </div>
       </div>
 
-      <!-- Canvas Viewport -->
-      <div class="relative rounded-lg overflow-hidden bg-[#070a10] grid-pattern border border-slate-800">
-        <canvas id="mainCanvas" class="w-full h-80 sm:h-96"></canvas>
-
-        <!-- Scientific Telemetry HUD -->
-        <div class="absolute top-3 left-3 bg-[#0d131f]/95 border border-slate-800 rounded p-3 text-[11px] font-mono space-y-1 text-slate-300 shadow-md">
-          <div><span class="text-slate-500">STAGE:</span> <span id="webStage" class="text-blue-400 font-semibold">Stage 1: Approach Target</span></div>
-          <div><span class="text-slate-500">EE POSITION:</span> <span id="webEE" class="text-emerald-400 font-semibold">[+0.12, -0.04, +0.08]m</span></div>
-          <div><span class="text-slate-500">GRIPPER STATE:</span> <span id="webGrip" class="text-amber-400 font-semibold">OPEN (100%)</span></div>
-          <div><span class="text-slate-500">SPARSE REWARD:</span> <span id="webReward" class="text-slate-300 font-semibold">-1.0 (Searching)</span></div>
+      <!-- Telemetry Status Bar (Separated from Canvas, Zero Overlap!) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#070a10] p-3 rounded-lg border border-slate-800 font-mono text-xs">
+        <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Trajectory Stage</div>
+          <div id="webStage" class="text-blue-400 font-semibold text-xs mt-0.5">Stage 1: Approach Target</div>
         </div>
+        <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">End-Effector Pos</div>
+          <div id="webEE" class="text-emerald-400 font-semibold text-xs mt-0.5">[+0.12, -0.04, +0.08]m</div>
+        </div>
+        <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Gripper Aperture</div>
+          <div id="webGrip" class="text-amber-400 font-semibold text-xs mt-0.5">OPEN (100%)</div>
+        </div>
+        <div class="bg-[#111827] p-2.5 rounded border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Sparse Reward</div>
+          <div id="webReward" class="text-slate-300 font-semibold text-xs mt-0.5">-1.0 (Searching)</div>
+        </div>
+      </div>
+
+      <!-- Clean Canvas Viewport (Unobstructed, Arm Full Motion Visible) -->
+      <div class="relative rounded-lg overflow-hidden bg-[#070a10] grid-pattern border border-slate-800">
+        <canvas id="mainCanvas" class="w-full h-80 sm:h-96 block"></canvas>
       </div>
 
       <!-- Controls & Progress -->
       <div class="flex flex-wrap items-center justify-between gap-4 text-xs font-mono pt-1">
         <div class="flex items-center gap-2">
-          <button id="webPlayBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition">
+          <button id="webPlayBtn" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 transition">
             Pause
           </button>
-          <button id="webResetBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded border border-slate-800 transition">
+          <button id="webResetBtn" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded border border-slate-800 transition">
             Reset Trajectory
           </button>
         </div>
@@ -343,25 +353,25 @@
           ee.x += (block.x - ee.x) * 0.08;
           ee.y += (block.y - 70 - ee.y) * 0.08;
           gripperOpen = true;
-          document.getElementById('webStage').innerText = "Stage 1/4: Approach Block (Open Gripper)";
+          document.getElementById('webStage').innerText = "Stage 1/4: Approach Block";
           document.getElementById('webStage').className = "text-blue-400 font-semibold";
         } else if (step < 55) {
           ee.y += (block.y - 12 - ee.y) * 0.12;
           gripperOpen = true;
-          document.getElementById('webStage').innerText = "Stage 2/4: Vertical Descent Over Target";
+          document.getElementById('webStage').innerText = "Stage 2/4: Vertical Descent";
           document.getElementById('webStage').className = "text-sky-400 font-semibold";
         } else if (step < 85) {
           gripperOpen = false;
           ee.y += (100 - ee.y) * 0.08;
           block.x = ee.x; block.y = ee.y + 14;
-          document.getElementById('webStage').innerText = "Stage 3/4: Gripper Clamping & Elevation";
+          document.getElementById('webStage').innerText = "Stage 3/4: Clamping & Elevation";
           document.getElementById('webStage').className = "text-amber-400 font-semibold";
         } else {
           gripperOpen = false;
           ee.x += (goal.x - ee.x) * 0.08;
           ee.y += (goal.y - ee.y) * 0.08;
           block.x = ee.x; block.y = ee.y + 14;
-          document.getElementById('webStage').innerText = "Stage 4/4: Transport to Goal (Goal Reached)";
+          document.getElementById('webStage').innerText = "Stage 4/4: Transport to Goal";
           document.getElementById('webStage').className = "text-emerald-400 font-semibold";
         }
       }
