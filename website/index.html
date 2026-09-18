@@ -641,7 +641,7 @@
 
       // Vertical pitch compensation: keeps gripper pointing straight down at table surface
       if (wristFlange) {
-        wristFlange.rotation.z = -(currentAngles.shoulder + currentAngles.elbow);
+        wristFlange.rotation.z = -(currentAngles.shoulder + currentAngles.elbow) + Math.PI;
       }
 
       if (fingerLeft && fingerRight) {
@@ -649,11 +649,11 @@
         fingerRight.position.x = gripperWidth;
       }
 
-      // Attach cube to end-effector when latched between fingers
+      // Attach cube to end-effector when latched between downward fingers
       if (isCubeAttached && wristFlange) {
         const wristPos = new THREE.Vector3();
         wristFlange.getWorldPosition(wristPos);
-        payloadMesh.position.set(wristPos.x, wristPos.y - 0.08, wristPos.z);
+        payloadMesh.position.set(wristPos.x, wristPos.y - 0.16, wristPos.z);
       }
 
       if (wristFlange) {
