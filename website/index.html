@@ -72,6 +72,49 @@
       <p class="text-xs text-slate-400">Capabilities beyond standard pick-and-place: VLM reasoning, non-rigid cable routing, and human shared autonomy</p>
     </div>
 
+    <!-- 📊 COMPARISON TABLE: COMMON VS FRONTIER -->
+    <div class="card-panel rounded-xl p-5 border-l-4 border-l-purple-500">
+      <div class="text-xs font-bold text-purple-400 font-mono mb-2 uppercase tracking-wider">Why This Project Stands Out (Industry Contrast Matrix)</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs font-mono">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400">
+              <th class="py-2.5 font-semibold">Feature / Aspect</th>
+              <th class="py-2.5 font-semibold text-slate-500">Common Student Projects</th>
+              <th class="py-2.5 font-semibold text-emerald-400">Our Production Frontier System</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 text-[11px]">
+            <tr>
+              <td class="py-2 font-bold text-slate-200">Task Control</td>
+              <td class="text-slate-500">Fixed target coordinates [x, y, z]</td>
+              <td class="text-purple-300 font-semibold">Vision-Language Model (VLM) Natural Language Prompts</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-bold text-slate-200">Object Physics</td>
+              <td class="text-slate-500">Rigid wooden cubes/blocks only</td>
+              <td class="text-indigo-300 font-semibold">Deformable Mass-Spring Cables & Flexible Harnessing</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-bold text-slate-200">Human Safety</td>
+              <td class="text-slate-500">None (Arm crashes into obstacles/humans)</td>
+              <td class="text-emerald-300 font-semibold">ISO 15066 Cobot 0.5s Predictive Intent Shielding</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-bold text-slate-200">Reward Function</td>
+              <td class="text-slate-500">Dense shaped reward (artificial distance helper)</td>
+              <td class="text-blue-300 font-semibold">Pure Sparse Rewards (-1/0) + HER Failure Sample Learning</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-bold text-slate-200">Hardware Readiness</td>
+              <td class="text-slate-500">Pure Python simulator script</td>
+              <td class="text-amber-300 font-semibold">ROS 2 Hardware Bridge, CAN-bus / EtherCAT Drivers & Domain Randomization</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       
       <!-- Innovation 1 -->
