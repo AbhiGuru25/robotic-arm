@@ -1,6 +1,6 @@
 # Autonomous Robotic Arm Manipulation via Sparse-Reward Reinforcement Learning & Hindsight Experience Replay
 
-> **Final Year Research Project** | Adani University, Dept. of CS (AI & ML)  
+> **Final Year Research Project** | Dept. of CS (AI & ML)  
 > **Author:** Abhi Virani  
 > **Live Demo & Telemetry Dashboard:** [https://abhiguru25.github.io/robotic-arm/](https://abhiguru25.github.io/robotic-arm/)
 
@@ -62,7 +62,7 @@ python scripts/record_linkedin_video.py --algo sac --her
 @article{virani2026comparative,
   title   = {Comparative Study of DDPG, TD3, SAC, and PPO for Sparse-Reward Robotic Arm Manipulation using Hindsight Experience Replay},
   author  = {Virani, Abhi},
-  journal = {Adani University, Department of Computer Science (AI & ML)},
+  journal = {Department of Computer Science (AI & ML)},
   year    = {2026}
 }
 ```
