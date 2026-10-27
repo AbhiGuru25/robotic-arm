@@ -1,6 +1,6 @@
 # Autonomous Robotic Arm Manipulation via Sparse-Reward Reinforcement Learning & Hindsight Experience Replay
 
-> **Final Year Research Project** | Dept. of CS (AI & ML)  
+> **Autonomous Robotics Research Benchmark** | Dept. of CS (AI & ML)  
 > **Author:** Abhi Virani  
 > **Live Demo & Telemetry Dashboard:** [https://abhiguru25.github.io/robotic-arm/](https://abhiguru25.github.io/robotic-arm/)
 

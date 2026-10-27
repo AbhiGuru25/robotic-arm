@@ -1,9 +1,9 @@
-# 🎓 Final Year Project Defense & Viva Presentation Deck
+# 🎓 Autonomous Robotics Research Defense & Technical Presentation Deck
 
 > **Project Title:** Language-Guided Goal-Conditioned Robotic Manipulation via Soft Actor-Critic (SAC), Hindsight Experience Replay (HER), and Sim-to-Real Domain Randomization  
 > **Author:** Abhi Virani  
 > **Department:** Department of Computer Science (AI & ML)  
-> **Academic Session:** 2025–2026
+> **Research Group:** Autonomous Systems & Robotics Research Group
 
 ---
 

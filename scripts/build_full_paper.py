@@ -285,7 +285,7 @@ def build_paper():
   <!-- PAGE 1 -->
   <div class="paper-sheet" id="page-1">
     <div class="page-header">
-      <span>Final-Year Research Project & Physical Benchmark</span>
+      <span>Autonomous Robotics & Control Systems Research</span>
       <span>Autonomous Systems & Robotics Laboratory</span>
     </div>
 
@@ -297,7 +297,7 @@ def build_paper():
       <div class="author-name">Abhi Virani</div>
       <div class="author-dept">
         Department of Computer Science (Artificial Intelligence & Machine Learning)<br>
-        <em>Autonomous Systems & Robotics Research Group — Academic Year 2025–2026</em>
+        <em>Autonomous Systems & Robotics Research Group</em>
       </div>
       <div class="author-email">Correspondence: abhivirani2556@gmail.com</div>
     </div>
