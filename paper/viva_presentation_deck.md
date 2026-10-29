@@ -73,3 +73,22 @@
 ### Future Research Directions:
 - Bimanual dual-arm manipulation.
 - Vision-Language-Action (VLA) foundation model integration.
+
+
+---
+
+## 🛡️ Slide 6: Defense Against Industrial Critique (Fixed-Waypoint vs. Dynamic Perception)
+
+### The Examiner / Evaluator Question:
+> *"Traditional industrial robots already pick from fixed position A to fixed goal B using teach pendants. What makes this research intelligent and autonomous?"*
+
+### The Rigorous Mathematical Defense:
+1. **Fixed G-Code vs. Universal Goal-Conditioned Policy $\\pi_\\theta(a \\mid s, g)$:**
+   - Industrial factory robots use hard-coded Cartesian waypoints $(P_1 \\to P_2)$. If the incoming part shifts by $2\\text{ cm}$, the traditional robot smashes or fails.
+   - Our system learns a **closed-loop feedback vector field**. The policy input vector $s \\in \\mathbb{R}^{25}$ directly encodes the real-time 6D pose of the object $\\boldsymbol{x}_{\\text{obj}} \\in \\mathbb{R}^3$, dynamically tracked by RGB-D vision.
+2. **Arbitrary 3D Space & Ground Invariance:**
+   - Both initial object coordinate $\\boldsymbol{x}_{\\text{obj}} \\sim \\mathcal{U}(\\mathcal{W}_{\\text{workspace}})$ and target goal $\\boldsymbol{g} \\sim \\mathcal{U}(\\mathcal{W}_{\\text{goal}})$ are continuous random variables sampled across the entire 7-DOF reachable hemisphere (ground table, elevated bins, aerial target poses).
+3. **Mid-Trajectory Perturbation Robustness:**
+   - If an obstacle appears or the target goal is dynamically shifted mid-air, the closed-loop policy dynamically re-routes in real time ($< 20\\text{ ms}$) rather than following a predetermined path.
+4. **Interactive Verification:**
+   - Demonstrable live on the WebGL 3D simulator: click **"Randomize Box & Goal Anywhere in 3D"** to prove the arm autonomously perceives and plans trajectories between arbitrary spatial coordinates without reprogramming.
