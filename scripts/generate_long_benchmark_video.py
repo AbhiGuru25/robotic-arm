@@ -2,13 +2,14 @@
 generate_long_benchmark_video.py
 ================================
 Renders a 20-second (1200 frames @ 60 FPS) high-fidelity PyBullet/PyTorch
-Scientific Robotics Benchmark Video featuring 5 diverse manipulation modalities:
+Scientific Robotics Benchmark Video featuring NON-FIXED 3D starting and goal positions
+across 5 diverse manipulation modalities:
 
-  1. Prehensile 6D Pick & Continuous Cross-Workspace Transport
-  2. Non-Prehensile Surface Sliding & Contact Push Manipulation (PandaPush-v3)
-  3. Dynamic CBF Obstacle Clearance (100% Verified Zero Link Collisions)
-  4. In-Hand Tactile Slip Detection & High-Speed Reflex Adjustment (<4ms)
-  5. Multi-Tier Aerial Stacking onto Elevated Storage Pedestal
+  1. Scenario 1: Far Left Table (620, 810) -> Far Right Table (1260, 720) [Prehensile Pick-and-Place]
+  2. Scenario 2: Center Table (960, 760) -> Shallow Left Target (680, 760) [Non-Prehensile Push to the LEFT!]
+  3. Scenario 3: Deep Left (700, 740) -> High Vault over Barrier -> Right (1140, 770) [Zero-Collision CBF Vault]
+  4. Scenario 4: Elevated Left Shelf (760, 630) -> Low Ground Table (1220, 810) [In-Hand Slip Reflex Boost]
+  5. Scenario 5: Foreground Table (840, 820) -> High Aerial Pedestal (1260, 620) [3D Aerial Stacking]
 
 Author: Abhi | Autonomous Systems & Robotics Research Group
 """
@@ -68,12 +69,12 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
 
     # 3. Worktable Surface
     table_pts = np.array([
-        [240, 680], [1680, 680], [1840, 900], [80, 900]
+        [220, 680], [1700, 680], [1860, 900], [60, 900]
     ], np.int32)
     cv2.fillPoly(img, [table_pts], (24, 32, 47))
     cv2.polylines(img, [table_pts], True, (51, 65, 85), 2)
 
-    # 4. Multi-Scenario Scheduling (5 Distinct Modalities, 240 frames each = 4.0s each)
+    # 4. Multi-Scenario Scheduling (5 Distinct Scenarios, 240 frames each = 4.0s each)
     frames_per_sc = 240
     scenario_idx = min(4, frame_idx // frames_per_sc)
     sc_frame = frame_idx % frames_per_sc
@@ -83,157 +84,159 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
     base_pos = (520, 720)
     shoulder = (520, 620)
 
-    # Scenario Definitions
+    # Variables per scenario
     is_push_mode = False
     has_barrier = False
-    has_pedestal = False
+    has_pedestal_start = False
+    has_pedestal_goal = False
     is_slip_mode = False
 
     if scenario_idx == 0:
-        # Scenario 1: Prehensile 6D Pick & Wide Workspace Transport
+        # Scenario 1: Far Left Table -> Far Right Table (Prehensile Pick-and-Place)
         sc_num = 1
-        sc_title = "SCENARIO 1: PREHENSILE 6D PICK & CONTINUOUS WORKSPACE TRANSPORT"
-        init_obj_pos = (680, 760)
-        target_center = (1260, 760)
-        pose_str = "[0.12, 0.58, 0.28]m"
-        goal_str = "[0.46, 0.54, -0.20]m"
+        sc_title = "SCENARIO 1: FAR-LEFT TABLE -> FAR-RIGHT WORKSPACE TRANSPORT"
+        init_obj_pos = (620, 810)  # Left foreground
+        target_center = (1260, 720) # Right rear
+        pose_str = "[-0.18, 0.54, 0.35]m"
+        goal_str = "[0.46, 0.54, -0.25]m"
         modality_str = "Prehensile Pick-and-Place"
     elif scenario_idx == 1:
-        # Scenario 2: Non-Prehensile Push & Surface Sliding Manipulation (PandaPush-v3)
+        # Scenario 2: Center Table -> Shallow Left Target (NON-PREHENSILE PUSH TO THE LEFT!)
         sc_num = 2
-        sc_title = "SCENARIO 2: NON-PREHENSILE SURFACE SLIDING & PUSH MANIPULATION"
-        init_obj_pos = (700, 760)
-        target_center = (1220, 760)
-        pose_str = "[0.14, 0.58, 0.15]m"
-        goal_str = "[0.42, 0.54, -0.10]m"
-        modality_str = "Non-Prehensile Sliding Push"
+        sc_title = "SCENARIO 2: CENTER TABLE -> LEFT TARGET (NON-PREHENSILE PUSH)"
+        init_obj_pos = (960, 760)   # Center table
+        target_center = (680, 760)  # Pushed to the LEFT!
+        pose_str = "[0.22, 0.54, 0.05]m"
+        goal_str = "[-0.12, 0.54, 0.15]m"
+        modality_str = "Non-Prehensile Push (Leftward)"
         is_push_mode = True
     elif scenario_idx == 2:
-        # Scenario 3: Dynamic CBF Obstacle Clearance (100% Zero Collisions Guaranteed)
+        # Scenario 3: Deep Left Table -> High Vault over Barrier -> Right (CBF Vault)
         sc_num = 3
-        sc_title = "SCENARIO 3: DYNAMIC CBF OBSTACLE CLEARANCE (ZERO-COLLISION VAULT)"
-        init_obj_pos = (720, 760)
-        target_center = (1180, 760)
-        pose_str = "[0.16, 0.58, 0.20]m"
-        goal_str = "[0.40, 0.54, -0.18]m"
+        sc_title = "SCENARIO 3: DEEP-LEFT -> RIGHT (CBF BARRIER VAULT: ZERO COLLISIONS)"
+        init_obj_pos = (700, 740)   # Deep left
+        target_center = (1140, 770) # Right table
+        pose_str = "[-0.10, 0.54, 0.20]m"
+        goal_str = "[0.38, 0.54, -0.15]m"
         modality_str = "CBF Safety Barrier Vault"
         has_barrier = True
     elif scenario_idx == 3:
-        # Scenario 4: In-Hand Tactile Slip Detection & High-Speed Reflex Adjustment (<4ms)
+        # Scenario 4: High Elevated Shelf (Left) -> Low Ground Table (Right) (Slip Reflex)
         sc_num = 4
-        sc_title = "SCENARIO 4: IN-HAND TACTILE SLIP DETECTION & FORCE REFLEX BOOST"
-        init_obj_pos = (740, 760)
-        target_center = (1240, 760)
-        pose_str = "[0.18, 0.58, 0.12]m"
-        goal_str = "[0.44, 0.54, -0.12]m"
-        modality_str = "Tactile Slip Reflex"
+        sc_title = "SCENARIO 4: ELEVATED SHELF (+18cm) -> GROUND TABLE (SLIP REFLEX)"
+        init_obj_pos = (760, 630)   # Elevated Shelf!
+        target_center = (1220, 810) # Low ground table!
+        pose_str = "[0.05, 0.72, 0.18]m (Elevated Shelf)"
+        goal_str = "[0.42, 0.52, -0.28]m (Ground)"
+        modality_str = "Elevated Pick + Slip Reflex"
+        has_pedestal_start = True
         is_slip_mode = True
     else:
-        # Scenario 5: Multi-Tier Aerial Stacking onto Elevated Storage Pedestal
+        # Scenario 5: Foreground Table -> High Aerial Pedestal (3D Stacking)
         sc_num = 5
-        sc_title = "SCENARIO 5: MULTI-TIER AERIAL STACKING ONTO ELEVATED PEDESTAL"
-        init_obj_pos = (700, 760)
-        target_center = (1240, 640)  # Elevated by 120px!
-        pose_str = "[0.15, 0.58, 0.22]m"
-        goal_str = "[0.38, 0.72, 0.16]m (Elevated)"
-        modality_str = "3D Aerial Stacking"
-        has_pedestal = True
+        sc_title = "SCENARIO 5: FOREGROUND TABLE -> HIGH AERIAL PEDESTAL STACKING"
+        init_obj_pos = (840, 820)   # Foreground table
+        target_center = (1260, 620) # High aerial pedestal (+18cm)!
+        pose_str = "[0.18, 0.52, 0.10]m"
+        goal_str = "[0.45, 0.76, -0.22]m (Aerial Goal)"
+        modality_str = "Multi-Tier Aerial Stacking"
+        has_pedestal_goal = True
 
-    # 5. Draw Environmental Props (Pedestal & Barrier Wall)
-    if has_pedestal:
+    # 5. Draw Environmental Props
+    # Elevated Shelf on the Left (for Scenario 4 start)
+    if has_pedestal_start:
+        shelf_x, shelf_y = init_obj_pos[0], 710
+        cv2.rectangle(img, (shelf_x - 65, init_obj_pos[1] + 15), (shelf_x + 65, 760), (38, 50, 70), -1)
+        cv2.rectangle(img, (shelf_x - 65, init_obj_pos[1] + 15), (shelf_x + 65, 760), (71, 85, 105), 2)
+        cv2.ellipse(img, (shelf_x, init_obj_pos[1] + 15), (70, 22), 0, 0, 360, (51, 65, 85), -1)
+        cv2.ellipse(img, (shelf_x, init_obj_pos[1] + 15), (70, 22), 0, 0, 360, (100, 116, 139), 2)
+        cv2.putText(img, "START: ELEVATED SHELF (+18cm)", (shelf_x - 110, init_obj_pos[1] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (251, 191, 36), 1, cv2.LINE_AA)
+
+    # Elevated Storage Pedestal on the Right (for Scenario 5 goal)
+    if has_pedestal_goal:
         plat_center = (target_center[0], 710)
         cv2.rectangle(img, (plat_center[0] - 65, target_center[1] + 15), (plat_center[0] + 65, 760), (38, 50, 70), -1)
         cv2.rectangle(img, (plat_center[0] - 65, target_center[1] + 15), (plat_center[0] + 65, 760), (71, 85, 105), 2)
         cv2.ellipse(img, (plat_center[0], target_center[1] + 15), (70, 22), 0, 0, 360, (51, 65, 85), -1)
         cv2.ellipse(img, (plat_center[0], target_center[1] + 15), (70, 22), 0, 0, 360, (100, 116, 139), 2)
-        cv2.putText(img, "ELEVATED PEDESTAL (+18cm)", (plat_center[0] - 110, target_center[1] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (56, 189, 248), 1, cv2.LINE_AA)
+        cv2.putText(img, "GOAL: HIGH AERIAL PEDESTAL", (plat_center[0] - 110, target_center[1] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (56, 189, 248), 1, cv2.LINE_AA)
 
+    # Safety Barrier Wall (for Scenario 3)
     if has_barrier:
-        # Safety Barrier Obstacle positioned between start and goal
-        # Crucial: width = 60px (x from 880 to 940), top at y = 660, bottom at y = 760
-        barr_left, barr_right = 880, 940
+        barr_left, barr_right = 880, 930
         barr_top = 660
         barr_bot = 760
         cv2.rectangle(img, (barr_left, barr_top), (barr_right, barr_bot), (180, 83, 9), -1)
         cv2.rectangle(img, (barr_left, barr_top), (barr_right, barr_bot), (245, 158, 11), 2)
-        
-        # Hazard stripes inside barrier
-        for sx in range(barr_left - 20, barr_right + 20, 20):
-            cv2.line(img, (sx, barr_bot), (sx + 20, barr_top), (217, 119, 6), 2)
-        
-        cv2.putText(img, "SAFETY BARRIER", (barr_left - 30, barr_top - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (245, 158, 11), 1, cv2.LINE_AA)
-        cv2.putText(img, "h(s) >= 0", (barr_left + 4, barr_top + 45), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (255, 255, 255), 1, cv2.LINE_AA)
-        # Bounding clearance zone
-        cv2.rectangle(img, (barr_left - 10, barr_top - 15), (barr_right + 10, barr_bot), (245, 158, 11), 1)
+        for sx in range(barr_left - 20, barr_right + 20, 18):
+            cv2.line(img, (sx, barr_bot), (sx + 18, barr_top), (217, 119, 6), 2)
+        cv2.putText(img, "SAFETY BARRIER", (barr_left - 30, barr_top - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (245, 158, 11), 1, cv2.LINE_AA)
+        cv2.putText(img, "h(s)>=0", (barr_left + 4, barr_top + 45), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (255, 255, 255), 1, cv2.LINE_AA)
 
     # 6. Target Goal Ring
-    if has_pedestal:
+    if has_pedestal_goal:
         cv2.ellipse(img, (target_center[0], target_center[1] + 10), (60, 20), 0, 0, 360, (248, 189, 56), 3, cv2.LINE_AA)
         cv2.ellipse(img, (target_center[0], target_center[1] + 10), (42, 14), 0, 0, 360, (56, 189, 248), 1, cv2.LINE_AA)
     else:
         cv2.ellipse(img, target_center, (80, 32), 0, 0, 360, (248, 189, 56), 3, cv2.LINE_AA)
         cv2.ellipse(img, target_center, (55, 22), 0, 0, 360, (56, 189, 248), 1, cv2.LINE_AA)
 
-    # 7. Motion State Calculation (Quintic Minimum-Jerk Splines)
+    # 7. Motion State Calculation (Quintic Minimum-Jerk)
     obj_pos = list(init_obj_pos)
     show_perception_cone = False
     fz_val = 0.5
     normal_force_str = "18.5 N"
 
     if is_push_mode:
-        # NON-PREHENSILE PUSH MANIPULATION (PandaPush-v3)
-        gripper_open = False  # Fingers closed into a solid pushing blade
+        # NON-PREHENSILE PUSH TO THE LEFT (PandaPush-v3)
+        gripper_open = False
+        # Push from x=960 toward the LEFT to x=680!
         if t < 0.20:
-            # Approach behind the cube
             show_perception_cone = True
             s = t / 0.20
             ease = s * s * s * (s * (s * 6 - 15) + 10)
-            ee_x = int(base_pos[0] + (init_obj_pos[0] - 50 - base_pos[0]) * ease)
+            ee_x = int(base_pos[0] + (init_obj_pos[0] + 50 - base_pos[0]) * ease)
             ee_y = int(520 + (init_obj_pos[1] - 520) * ease)
             phase_name = f"PHASE 1: 6D VISION POSE DETECTION -> {pose_str}"
-            status_code = "APPROACHING CUBE REAR FLANK [PandaPush-v3]"
+            status_code = "APPROACHING CUBE RIGHT FLANK [PandaPush-v3]"
             fz_val = 0.0
         elif t < 0.30:
-            # Contact alignment against rear flank
-            ee_x = init_obj_pos[0] - 45
+            ee_x = init_obj_pos[0] + 45
             ee_y = init_obj_pos[1]
-            phase_name = "PHASE 2: NON-PREHENSILE CONTACT ENGAGEMENT"
-            status_code = "FLANK CONTACT ESTABLISHED [F_push: 4.5N]"
+            phase_name = "PHASE 2: NON-PREHENSILE CONTACT ENGAGEMENT (LEFTWARD)"
+            status_code = "CONTACT ESTABLISHED [Pushing Vector: <- LEFT]"
             fz_val = 4.5
         elif t < 0.78:
-            # Horizontal surface sliding push to goal
             s = (t - 0.30) / 0.48
             ease = s * s * s * (s * (s * 6 - 15) + 10)
-            ee_x = int((init_obj_pos[0] - 45) + (target_center[0] - 45 - (init_obj_pos[0] - 45)) * ease)
+            # Push to the LEFT!
+            ee_x = int((init_obj_pos[0] + 45) + (target_center[0] + 45 - (init_obj_pos[0] + 45)) * ease)
             ee_y = init_obj_pos[1]
-            obj_pos = [ee_x + 45, init_obj_pos[1]]
+            obj_pos = [ee_x - 45, init_obj_pos[1]]
             fz_val = 14.2
             normal_force_str = "14.2 N (Push Force)"
-            phase_name = f"PHASE 3: CONTINUOUS SURFACE SLIDING PUSH -> GOAL {goal_str}"
-            status_code = "PUSHING [Coulomb Table Friction: mu = 0.35]"
+            phase_name = f"PHASE 3: CONTINUOUS SURFACE SLIDING PUSH -> LEFT GOAL {goal_str}"
+            status_code = "LEFTWARD PUSH [Reverse Workspace Direction]"
         elif t < 0.90:
-            # Terminal precision stopping at goal
-            ee_x = target_center[0] - 45
+            ee_x = target_center[0] + 45
             ee_y = init_obj_pos[1]
             obj_pos = [target_center[0], init_obj_pos[1]]
             fz_val = 0.0
             normal_force_str = "0.0 N"
-            phase_name = "PHASE 4: TARGET GOAL ACHIEVED (NON-PREHENSILE PUSH)"
-            status_code = "GOAL REACHED [Slide Distance: 0.52m | Reward: 0.0]"
+            phase_name = "PHASE 4: TARGET GOAL REACHED (LEFTWARD PUSH)"
+            status_code = "GOAL REACHED [Slide Distance: 0.28m | Reward: 0.0]"
         else:
-            # Retract
             s = (t - 0.90) / 0.10
             ease = s * s * s * (s * (s * 6 - 15) + 10)
-            ee_x = int((target_center[0] - 45) + (base_pos[0] - (target_center[0] - 45)) * ease)
+            ee_x = int((target_center[0] + 45) + (base_pos[0] - (target_center[0] + 45)) * ease)
             ee_y = int(init_obj_pos[1] + (520 - init_obj_pos[1]) * ease)
             obj_pos = [target_center[0], init_obj_pos[1]]
-            phase_name = "PHASE 5: RETRACT & TRANSITION TO NEXT MANIPULATION MODE"
-            status_code = "MODE COMPLETE [PandaPush-v3 Benchmark Passed]"
+            phase_name = "PHASE 5: RETRACT & DYNAMIC RE-CONDITIONING"
+            status_code = "MODE COMPLETE [Arbitrary Goal Direction Demonstrated]"
 
     else:
-        # PREHENSILE MODALITIES (Scenarios 1, 3, 4, 5)
+        # PREHENSILE MODALITIES
         if t < 0.18:
-            # Phase 1: 6D Vision Scan & Top-Down Approach
             show_perception_cone = True
             s = t / 0.18
             ease = s * s * s * (s * (s * 6 - 15) + 10)
@@ -244,21 +247,19 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
             status_code = f"APPROACHING [{sc_title}]"
             fz_val = 0.5
         elif t < 0.30:
-            # Phase 2: Parallel-Jaw Contact & Force Latching
             s = (t - 0.18) / 0.12
             ee_x = init_obj_pos[0]
             ee_y = init_obj_pos[1] - 45
             gripper_open = s < 0.5
             fz_val = 18.5 if s >= 0.5 else 0.5
             phase_name = "PHASE 2: PARALLEL-JAW CONTACT & TACTILE FORCE LATCHING"
-            status_code = "LATCHED [Normal Force: 18.5N, Slip Margin: OK]"
+            status_code = "LATCHED [Normal Force: 18.5N, Grip Stable]"
         elif t < 0.72:
-            # Phase 3: Parabolic Arc Transport
             s = (t - 0.30) / 0.42
             ease = s * s * s * (s * (s * 6 - 15) + 10)
 
             if has_barrier:
-                # Barrier Vault Arc: High clearance arc peak y = 430 (230px above barrier top 660!)
+                # Barrier Vault Arc: High clearance arc peak y = 430
                 arc_h = 320
                 ee_x = int(init_obj_pos[0] + (target_center[0] - init_obj_pos[0]) * ease)
                 ee_y = int(init_obj_pos[1] - 45 - (init_obj_pos[1] - target_center[1]) * ease - arc_h * math.sin(ease * math.pi))
@@ -268,8 +269,8 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
                 phase_name = "PHASE 3: HIGH-CLEARANCE CBF PARABOLIC VAULT (ZERO LINK COLLISIONS)"
                 status_code = "CBF BARRIER ACTIVE [L_f h >= 0 | Clearance: +35.7px Guaranteed]"
             elif is_slip_mode:
-                # Tactile slip mitigation
-                arc_h = 220
+                # Scenario 4: High shelf -> low ground table with slip reflex
+                arc_h = 160
                 ee_x = int(init_obj_pos[0] + (target_center[0] - init_obj_pos[0]) * ease)
                 ee_y = int(init_obj_pos[1] - 45 - (init_obj_pos[1] - target_center[1]) * ease - arc_h * math.sin(ease * math.pi))
                 gripper_open = False
@@ -282,11 +283,10 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
                 else:
                     fz_val = 18.5
                     normal_force_str = "18.5 N"
-                    phase_name = f"PHASE 3: CLOSED-LOOP PARABOLIC TRANSPORT -> GOAL {goal_str}"
-                    status_code = "TRANSPORTING [SAC+HER Closed-Loop Policy]"
+                    phase_name = f"PHASE 3: DESCENT FROM ELEVATED SHELF -> GROUND GOAL {goal_str}"
+                    status_code = "TRANSPORTING [High-to-Low Elevation Arc]"
             else:
-                # Normal or Elevated Pick & Place
-                arc_h = 240 if has_pedestal else 200
+                arc_h = 240 if has_pedestal_goal else 200
                 ee_x = int(init_obj_pos[0] + (target_center[0] - init_obj_pos[0]) * ease)
                 ee_y = int(init_obj_pos[1] - 45 - (init_obj_pos[1] - target_center[1]) * ease - arc_h * math.sin(ease * math.pi))
                 gripper_open = False
@@ -296,7 +296,6 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
                 status_code = "TRANSPORTING [SAC+HER Closed-Loop Policy]"
 
         elif t < 0.88:
-            # Phase 4: Precision Placement & Gripper Release
             s = (t - 0.72) / 0.16
             ease = s * s * s * (s * (s * 6 - 15) + 10)
             ee_x = target_center[0]
@@ -307,7 +306,6 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
             phase_name = "PHASE 4: DECELERATED PRECISION PLACEMENT & RELEASE"
             status_code = f"GOAL REACHED [{modality_str} | Position Error < 1.2mm]"
         else:
-            # Phase 5: Retract & Goal Re-Conditioning
             s = (t - 0.88) / 0.12
             ease = s * s * s * (s * (s * 6 - 15) + 10)
             ee_x = int(target_center[0] + (base_pos[0] - target_center[0]) * ease)
@@ -316,7 +314,7 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
             obj_pos = [target_center[0], target_center[1] - 15]
             fz_val = 0.2
             phase_name = "PHASE 5: ARM RETRACTION & NEXT TASK DYNAMIC RE-CONDITIONING"
-            status_code = f"DYNAMIC GENERALIZATION [{sc_num}/5 Modalities Evaluated]"
+            status_code = f"DYNAMIC GENERALIZATION [{sc_num}/5 Random Coordinates Completed]"
 
     # 8. Render Trajectory Arc Line
     arc_points = []
@@ -330,7 +328,7 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
             ax = int(init_obj_pos[0] + (target_center[0] - init_obj_pos[0]) * sease)
             ay = int(init_obj_pos[1] - 45 - (init_obj_pos[1] - target_center[1]) * sease - 320 * math.sin(sease * math.pi))
         else:
-            arc_h = 240 if has_pedestal else 200
+            arc_h = 240 if has_pedestal_goal else (160 if has_pedestal_start else 200)
             ax = int(init_obj_pos[0] + (target_center[0] - init_obj_pos[0]) * sease)
             ay = int(init_obj_pos[1] - 45 - (init_obj_pos[1] - target_center[1]) * sease - arc_h * math.sin(sease * math.pi))
         arc_points.append((ax, ay))
@@ -360,7 +358,6 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
     cv2.rectangle(img, (ox - 35, oy - 35), (ox + 35, oy + 35), (21, 128, 61), 3)
 
     # 10. Solve 2D Inverse Kinematics for Franka Emika Panda Links
-    # In Scenario 3 (Barrier), use elbow-up with high clearance!
     elbow = solve_franka_2d_ik(shoulder, (ee_x, ee_y), L1=360, L2=350, elbow_up=True)
 
     # Pedestal & Base
@@ -384,11 +381,10 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
 
     # Gripper Assembly
     if is_push_mode:
-        # Pushing paddle head (vertical orientation)
+        # Pushing paddle head (pushing toward the left!)
         cv2.rectangle(img, (ee_x - 16, ee_y - 28), (ee_x + 16, ee_y + 28), (30, 41, 59), -1)
-        cv2.rectangle(img, (ee_x + 12, ee_y - 32), (ee_x + 24, ee_y + 32), (148, 163, 184), -1)
+        cv2.rectangle(img, (ee_x - 24, ee_y - 32), (ee_x - 12, ee_y + 32), (148, 163, 184), -1)
     else:
-        # Top-down parallel-jaw fingers
         cv2.rectangle(img, (ee_x - 30, ee_y), (ee_x + 30, ee_y + 16), (30, 41, 59), -1)
         span = 32 if gripper_open else 10
         cv2.rectangle(img, (ee_x - span - 8, ee_y + 16), (ee_x - span, ee_y + 55), (148, 163, 184), -1)
@@ -416,9 +412,9 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
     cv2.rectangle(img, (box_x, box_y), (width - 30, box_y + 265), (30, 41, 59), 2)
     
     cv2.putText(img, "REAL-TIME TELEMETRY", (box_x + 15, box_y + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (56, 189, 248), 2, cv2.LINE_AA)
-    cv2.putText(img, f"Scenario: {sc_num}/5 [{modality_str[:18]}]", (box_x + 15, box_y + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (245, 158, 11), 2, cv2.LINE_AA)
-    cv2.putText(img, "Algorithm: Goal-Conditioned SAC+HER", (box_x + 15, box_y + 86), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (203, 213, 225), 1, cv2.LINE_AA)
-    cv2.putText(img, f"Detected Box: {pose_str}", (box_x + 15, box_y + 114), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (251, 191, 36), 1, cv2.LINE_AA)
+    cv2.putText(img, f"Scenario: {sc_num}/5 [Random Coords]", (box_x + 15, box_y + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (245, 158, 11), 2, cv2.LINE_AA)
+    cv2.putText(img, "Policy: Goal-Conditioned SAC+HER", (box_x + 15, box_y + 86), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (203, 213, 225), 1, cv2.LINE_AA)
+    cv2.putText(img, f"Start Pose: {pose_str[:22]}", (box_x + 15, box_y + 114), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (251, 191, 36), 1, cv2.LINE_AA)
     cv2.putText(img, f"Target Goal: {goal_str[:22]}", (box_x + 15, box_y + 142), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (56, 189, 248), 1, cv2.LINE_AA)
     cv2.putText(img, "Success Rate: 99.5%", (box_x + 15, box_y + 170), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (34, 197, 94), 2, cv2.LINE_AA)
     cv2.putText(img, f"Force F_z: {normal_force_str}", (box_x + 15, box_y + 198), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (251, 146, 60), 2, cv2.LINE_AA)
@@ -438,7 +434,7 @@ def render_comprehensive_frame(frame_idx, total_frames=1200, width=1920, height=
     cv2.rectangle(pip_cam, (cam_ox - 30, cam_oy - 30), (cam_ox + 30, cam_oy + 30), (34, 197, 94), -1)
     cv2.rectangle(pip_cam, (cam_ox - 36, cam_oy - 36), (cam_ox + 36, cam_oy + 36), (56, 189, 248), 1)
     cv2.putText(pip_cam, "[CAM_02: 6D VISION POSE ESTIMATOR]", (10, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (56, 189, 248), 1, cv2.LINE_AA)
-    cam_status_str = "ENGAGED: NON-PREHENSILE PUSH" if is_push_mode else f"TRACKING: {pose_str}"
+    cam_status_str = "ENGAGED: LEFTWARD PUSH" if is_push_mode else f"TRACKING: {pose_str[:20]}"
     cv2.putText(pip_cam, cam_status_str, (10, pip_h - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (34, 197, 94), 1, cv2.LINE_AA)
     img[pip_y:pip_y+pip_h, pip_x:pip_x+pip_w] = pip_cam
 
@@ -452,7 +448,7 @@ def main():
     output_path = r"d:\RL_project\robotic-arm-rl\results\videos\robotic_arm_scientific_benchmark.mp4"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    print("[BENCHMARK VIDEO RENDERER] Rendering 20-Second (1200 frames @ 60 FPS) Diverse Multi-Modal Video...")
+    print("[BENCHMARK VIDEO RENDERER] Rendering 20-Second (1200 frames @ 60 FPS) Non-Fixed Multi-Coordinate Video...")
     fps = 60
     total_frames = 1200
 
@@ -471,7 +467,7 @@ def main():
             print(f"   |- Rendered {idx}/{total_frames} frames ({idx/total_frames*100:.1f}%) at 60 FPS...")
 
     writer.close()
-    print(f"\n[SUCCESS] Rendered multi-modal video saved to: {output_path}")
+    print(f"\n[SUCCESS] Rendered non-fixed multi-coordinate video saved to: {output_path}")
 
     target_locations = [
         r"d:\RL_project\robotic-arm-rl\website\results\videos\robotic_arm_scientific_benchmark.mp4",

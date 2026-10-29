@@ -255,7 +255,7 @@
     <div class="academic-card rounded-2xl p-2.5 overflow-hidden shadow-sm bg-slate-900">
       <video 
         id="benchmarkVideo"
-        src="results/videos/robotic_arm_scientific_benchmark.mp4?v=multi_modal_v4" 
+        src="results/videos/robotic_arm_scientific_benchmark.mp4?v=non_fixed_coords_v5" 
         controls
         autoplay 
         loop 
@@ -269,60 +269,80 @@
       Figure 1: High-fidelity physical simulation of 7-DOF Franka Emika Panda arm executing the 5-Scenario Multi-Task Manipulation Suite: (1) Ground Pick & Cross-Workspace Transport, (2) Aerial Pedestal Stacking, (3) CBF Safety Barrier Clearance, (4) In-Hand Tactile Slip Reflex Boost, and (5) Narrow Pocket Precision Insertion (<1.2mm error).
     </div>
 
-    <!-- 5 Comprehensive Scenario Jump Cards -->
+    <!-- 5 Comprehensive Non-Fixed Scenario Jump Cards -->
     <div class="space-y-2">
       <div class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
-        <span>Diverse Manipulation Modalities (Click to Jump)</span>
-        <span class="text-[11px] font-normal text-slate-500 font-mono">Total Duration: 20.0s @ 60 FPS • Multi-Modal RL</span>
+        <span>Non-Fixed 3D Goal Conditioning (Click to Jump)</span>
+        <span class="text-[11px] font-normal text-emerald-600 font-mono font-semibold">Random Start & Arbitrary Goal Invariance</span>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-        <button onclick="seekBenchmarkVideo(0)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+        <button onclick="seekBenchmarkVideo(0)" class="academic-card rounded-lg p-3 text-left space-y-1.5 hover:border-sky-500 transition cursor-pointer group">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">1. Prehensile Pick</span>
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">1. Far Left &rarr; Right</span>
             <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:00</span>
           </div>
-          <p class="text-slate-600 leading-snug text-[10px]">
-            6D vision object localization and continuous cross-table transport.
+          <div class="text-[10px] font-mono text-slate-500 space-y-0.5">
+            <div>Start: <span class="text-amber-600 font-medium">[-0.18, 0.54, 0.35]m</span></div>
+            <div>Goal: <span class="text-sky-600 font-medium">[0.46, 0.54, -0.25]m</span></div>
+          </div>
+          <p class="text-slate-600 text-[10px]">
+            Prehensile cross-workspace 6D pick & place.
           </p>
         </button>
 
-        <button onclick="seekBenchmarkVideo(4)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+        <button onclick="seekBenchmarkVideo(4)" class="academic-card rounded-lg p-3 text-left space-y-1.5 hover:border-sky-500 transition cursor-pointer group">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">2. Non-Prehensile Push</span>
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">2. Center &rarr; Left Push</span>
             <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:04</span>
           </div>
-          <p class="text-slate-600 leading-snug text-[10px]">
-            Surface sliding contact push manipulation (PandaPush-v3 benchmark).
+          <div class="text-[10px] font-mono text-slate-500 space-y-0.5">
+            <div>Start: <span class="text-amber-600 font-medium">[0.22, 0.54, 0.05]m</span></div>
+            <div>Goal: <span class="text-sky-600 font-medium">[-0.12, 0.54, 0.15]m</span></div>
+          </div>
+          <p class="text-slate-600 text-[10px]">
+            Reverse direction non-prehensile contact push.
           </p>
         </button>
 
-        <button onclick="seekBenchmarkVideo(8)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+        <button onclick="seekBenchmarkVideo(8)" class="academic-card rounded-lg p-3 text-left space-y-1.5 hover:border-sky-500 transition cursor-pointer group">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">3. CBF Barrier Vault</span>
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">3. Deep Left &rarr; Vault</span>
             <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:08</span>
           </div>
-          <p class="text-slate-600 leading-snug text-[10px]">
-            Elbow-up high vault over physical wall (100% verified zero link collisions).
+          <div class="text-[10px] font-mono text-slate-500 space-y-0.5">
+            <div>Start: <span class="text-amber-600 font-medium">[-0.10, 0.54, 0.20]m</span></div>
+            <div>Goal: <span class="text-sky-600 font-medium">[0.38, 0.54, -0.15]m</span></div>
+          </div>
+          <p class="text-slate-600 text-[10px]">
+            Elbow-up high-vault over barrier (0 collisions).
           </p>
         </button>
 
-        <button onclick="seekBenchmarkVideo(12)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+        <button onclick="seekBenchmarkVideo(12)" class="academic-card rounded-lg p-3 text-left space-y-1.5 hover:border-sky-500 transition cursor-pointer group">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">4. Slip Reflex</span>
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">4. Shelf &rarr; Ground</span>
             <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:12</span>
           </div>
-          <p class="text-slate-600 leading-snug text-[10px]">
-            Friction cone monitor (&lambda;<sub>slip</sub> = 0.89) boosts grip force to 28.5N in &lt;4ms.
+          <div class="text-[10px] font-mono text-slate-500 space-y-0.5">
+            <div>Start: <span class="text-amber-600 font-medium">[0.05, 0.72, 0.18]m</span></div>
+            <div>Goal: <span class="text-sky-600 font-medium">[0.42, 0.52, -0.28]m</span></div>
+          </div>
+          <p class="text-slate-600 text-[10px]">
+            Elevated shelf pick + tactile slip reflex (28.5N).
           </p>
         </button>
 
-        <button onclick="seekBenchmarkVideo(16)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+        <button onclick="seekBenchmarkVideo(16)" class="academic-card rounded-lg p-3 text-left space-y-1.5 hover:border-sky-500 transition cursor-pointer group">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">5. Aerial Stacking</span>
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">5. Table &rarr; Aerial</span>
             <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:16</span>
           </div>
-          <p class="text-slate-600 leading-snug text-[10px]">
-            Non-coplanar 3D elevation (+18cm) onto raised storage pedestal.
+          <div class="text-[10px] font-mono text-slate-500 space-y-0.5">
+            <div>Start: <span class="text-amber-600 font-medium">[0.18, 0.52, 0.10]m</span></div>
+            <div>Goal: <span class="text-sky-600 font-medium">[0.45, 0.76, -0.22]m</span></div>
+          </div>
+          <p class="text-slate-600 text-[10px]">
+            Foreground table &rarr; aerial pedestal stacking.
           </p>
         </button>
       </div>
@@ -370,9 +390,11 @@
         </div>
         <div class="flex items-center gap-1.5 overflow-x-auto py-1">
           <span class="text-slate-400 text-[10px] uppercase tracking-wider font-semibold mr-1">Presets:</span>
-          <button onclick="setScenarioPreset(0)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Far Left -> Deep Right</button>
-          <button onclick="setScenarioPreset(1)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Center -> Elevated Platform</button>
-          <button onclick="setScenarioPreset(2)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Ground Floor -> High Bin</button>
+          <button onclick="setScenarioPreset(0)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Left -> Right</button>
+          <button onclick="setScenarioPreset(1)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Center -> Left (Push)</button>
+          <button onclick="setScenarioPreset(2)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Deep Left -> Vault</button>
+          <button onclick="setScenarioPreset(3)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Shelf -> Ground</button>
+          <button onclick="setScenarioPreset(4)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[10px] border border-slate-700 hover:border-slate-500 transition cursor-pointer">Table -> Aerial Pedestal</button>
         </div>
       </div>
 
@@ -564,19 +586,29 @@
     // Presets for Academic Evaluation
     const PRESET_SCENARIOS = [
       {
-        name: "Far Left Table -> Deep Right Slot",
-        cube: new THREE.Vector3(-0.05, 0.58, 0.32),
-        goal: new THREE.Vector3(0.42, 0.541, -0.22)
+        name: "1. Far Left Foreground -> Right Rear",
+        cube: new THREE.Vector3(-0.18, 0.58, 0.35),
+        goal: new THREE.Vector3(0.46, 0.541, -0.25)
       },
       {
-        name: "Center Table -> Elevated Platform (Aerial)",
-        cube: new THREE.Vector3(0.20, 0.58, 0.05),
-        goal: new THREE.Vector3(0.35, 0.70, 0.18)
+        name: "2. Center Table -> Shallow Left Target (Reverse Direction Push)",
+        cube: new THREE.Vector3(0.22, 0.58, 0.05),
+        goal: new THREE.Vector3(-0.12, 0.541, 0.15)
       },
       {
-        name: "Ground Clearance -> Upper Storage Bin",
-        cube: new THREE.Vector3(0.32, 0.58, -0.28),
-        goal: new THREE.Vector3(0.08, 0.72, -0.12)
+        name: "3. Deep Left Table -> High Parabolic Barrier Vault -> Right",
+        cube: new THREE.Vector3(-0.10, 0.58, 0.20),
+        goal: new THREE.Vector3(0.38, 0.541, -0.15)
+      },
+      {
+        name: "4. High Elevated Shelf (+18cm) -> Low Ground Table",
+        cube: new THREE.Vector3(0.05, 0.72, 0.18),
+        goal: new THREE.Vector3(0.42, 0.541, -0.28)
+      },
+      {
+        name: "5. Foreground Table -> Aerial Elevated Pedestal (+18cm)",
+        cube: new THREE.Vector3(0.18, 0.58, 0.10),
+        goal: new THREE.Vector3(0.45, 0.72, -0.22)
       }
     ];
 

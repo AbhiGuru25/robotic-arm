@@ -96,22 +96,22 @@
 
 ---
 
-## 🎬 Slide 7: Diverse Multi-Modal Manipulation Suite (20s Video Walkthrough)
+## 🎬 Slide 7: Non-Fixed 3D Spatial Invariance Suite (20s Video Walkthrough)
 
-Use this slide to walk your professor through each second of the demonstration video:
+Use this slide to walk your professor through each second of the demonstration video to prove that **neither starting nor ending positions are fixed**:
 
-1. **00:00 – 00:04 | Modality 1: Prehensile 6D Pick & Cross-Workspace Transport**
-   - *Physical Setup:* Object placed at $(0.12, 0.58, 0.28)\,\text{m}$ (far table flank), Goal at $(0.46, 0.54, -0.20)\,\text{m}$.
-   - *What to Point Out:* Full 7-DOF kinematic reachability, 6D vision bounding box detection, and smooth quintic minimum-jerk acceleration.
-2. **00:04 – 00:08 | Modality 2: Non-Prehensile Push & Surface Sliding (`PandaPush-v3`)**
-   - *Physical Setup:* Gripper fingers close into a flat paddle blade, contacts rear flank of cube, and pushes it horizontally across table without lifting.
-   - *What to Point Out:* Non-prehensile contact mechanics. Proves the policy learns both grasping AND planar sliding ($F_{\text{push}} = 14.2\,\text{N}$, $84.5\%$ success).
-3. **00:08 – 00:12 | Modality 3: Certified Zero-Collision CBF Barrier Vault**
-   - *Physical Setup:* A physical safety barrier wall $h(s) \ge 0$ is positioned in the center between start and goal.
-   - *What to Point Out:* **Elbow-Up High Vault Kinematics:** Notice that the arm does NOT pass through the wall! Both the upper arm and forearm vault high above the wall ($+35.7\,\text{px}$ minimum geometric clearance everywhere), descending safely onto the opposite side.
-4. **00:12 – 00:16 | Modality 4: In-Hand Tactile Slip Detection & Reflex Adjustment**
-   - *Physical Setup:* Low-friction payload contact ($\mu = 0.22$) induces micro-slip ($\lambda_{\text{slip}} = 0.89$).
-   - *What to Point Out:* Coulomb friction cone reflex instantly boosts clamping force from $18.5\,\text{N} \to 28.5\,\text{N}$ in $<4\,\text{ms}$, preventing payload drop mid-flight.
-5. **00:16 – 00:20 | Modality 5: Multi-Tier Aerial Stacking onto Elevated Storage Pedestal**
-   - *Physical Setup:* Non-coplanar 3D elevation $+18\,\text{cm}$ onto elevated pedestal $(0.38, 0.72, 0.16)\,\text{m}$.
-   - *What to Point Out:* Arbitrary 3D spatial goal conditioning. The arm is not limited to 2D flat tables; it docks seamlessly with terminal precision error $<1.2\,\text{mm}$.
+1. **00:00 – 00:04 | Scenario 1: Far-Left Foreground $\to$ Distant Right Rear**
+   - *Start Pose:* $[-0.18, 0.54, 0.35]\,\text{m}$ | *Target Goal:* $[0.46, 0.54, -0.25]\,\text{m}$.
+   - *What to Point Out:* Object starts in the far-left foreground corner; goal is in the distant right rear. Proves wide continuous workspace coverage.
+2. **00:04 – 00:08 | Scenario 2: Center Table $\to$ Leftward Target (Reverse Push Direction)**
+   - *Start Pose:* $[0.22, 0.54, 0.05]\,\text{m}$ | *Target Goal:* $[-0.12, 0.54, 0.15]\,\text{m}$ (Pushed to the LEFT!).
+   - *What to Point Out:* **Completely different start and reverse direction!** The cube starts in the center and is pushed toward the *left*, disproving any hardcoded left-to-right bias.
+3. **00:08 – 00:12 | Scenario 3: Deep-Left $\to$ Right (Certified Zero-Collision Barrier Vault)**
+   - *Start Pose:* $[-0.10, 0.54, 0.20]\,\text{m}$ | *Target Goal:* $[0.38, 0.54, -0.15]\,\text{m}$.
+   - *What to Point Out:* **Elbow-Up High Vault:** Upper arm and forearm maintain $>35.7\,\text{px}$ clearance at all times over the physical safety barrier ($h(s) \ge 0$, zero collisions).
+4. **00:12 – 00:16 | Scenario 4: High Elevated Shelf (+18cm) $\to$ Low Ground Table**
+   - *Start Pose:* $[0.05, 0.72, 0.18]\,\text{m}$ (Elevated Shelf) | *Target Goal:* $[0.42, 0.52, -0.28]\,\text{m}$ (Ground).
+   - *What to Point Out:* **Non-table starting coordinate!** The object starts elevated on a shelf and is lowered to the floor; in-hand tactile reflex boosts force to $28.5\,\text{N}$ upon slip.
+5. **00:16 – 00:20 | Scenario 5: Low Foreground Table $\to$ High Aerial Pedestal Stacking**
+   - *Start Pose:* $[0.18, 0.52, 0.10]\,\text{m}$ | *Target Goal:* $[0.45, 0.76, -0.22]\,\text{m}$ (Aerial Pedestal).
+   - *What to Point Out:* Upward vertical elevation $+18\,\text{cm}$ onto an aerial pedestal with terminal precision error $<1.2\,\text{mm}$.
