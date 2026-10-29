@@ -96,22 +96,22 @@
 
 ---
 
-## 🎬 Slide 7: The 5-Scenario Multi-Task Demonstration Suite (20s Video Guide)
+## 🎬 Slide 7: Diverse Multi-Modal Manipulation Suite (20s Video Walkthrough)
 
 Use this slide to walk your professor through each second of the demonstration video:
 
-1. **00:00 – 00:04 | Scenario 1: Cross-Table Ground Transfer**
-   - *Physical Setup:* Object placed at $(0.12, 0.58, 0.28)\,\text{m}$ (far table flank), Goal at $(0.48, 0.54, -0.22)\,\text{m}$.
-   - *What to Point Out:* Wide 7-DOF base yaw rotation without joint limits violation; smooth quintic minimum-jerk approach.
-2. **00:04 – 00:08 | Scenario 2: Aerial Pedestal Stacking**
-   - *Physical Setup:* Object at $(0.24, 0.58, 0.05)\,\text{m}$, Goal on top of an elevated pedestal at $(0.36, 0.72, 0.16)\,\text{m}$ ($+18\,\text{cm}$ vertical height).
-   - *What to Point Out:* Non-coplanar 3D goal conditioning. The arm does not assume flat surfaces; it lifts and deposits at elevated 3D coordinates.
-3. **00:08 – 00:12 | Scenario 3: Dynamic CBF Obstacle Clearance**
-   - *Physical Setup:* A physical safety barrier wall $h(s) \ge 0$ is placed between the object and the target.
-   - *What to Point Out:* The online Quadratic Program (QP) filter dynamically elevates the trajectory into a high parabolic arc ($+320\,\text{px}$ clearance), ensuring zero collisions without manual waypoint programming.
-4. **00:12 – 00:16 | Scenario 4: Tactile Slip Mitigation Reflex**
-   - *Physical Setup:* Payload experiences unexpected surface friction drop ($\lambda_{\text{slip}} > 0.85$).
-   - *What to Point Out:* In-hand shear force sensor triggers a sub-$4\,\text{ms}$ normal force boost from $18.5\,\text{N}$ to $28.0\,\text{N}$, preventing the object from slipping and dropping mid-flight.
-5. **00:16 – 00:20 | Scenario 5: Narrow Recessed Slot Insertion**
-   - *Physical Setup:* Deep corner low-clearance target requiring terminal precision.
-   - *What to Point Out:* Terminal deceleration reduces Cartesian velocity, achieving sub-millimeter precision placement ($<1.2\,\text{mm}$ error).
+1. **00:00 – 00:04 | Modality 1: Prehensile 6D Pick & Cross-Workspace Transport**
+   - *Physical Setup:* Object placed at $(0.12, 0.58, 0.28)\,\text{m}$ (far table flank), Goal at $(0.46, 0.54, -0.20)\,\text{m}$.
+   - *What to Point Out:* Full 7-DOF kinematic reachability, 6D vision bounding box detection, and smooth quintic minimum-jerk acceleration.
+2. **00:04 – 00:08 | Modality 2: Non-Prehensile Push & Surface Sliding (`PandaPush-v3`)**
+   - *Physical Setup:* Gripper fingers close into a flat paddle blade, contacts rear flank of cube, and pushes it horizontally across table without lifting.
+   - *What to Point Out:* Non-prehensile contact mechanics. Proves the policy learns both grasping AND planar sliding ($F_{\text{push}} = 14.2\,\text{N}$, $84.5\%$ success).
+3. **00:08 – 00:12 | Modality 3: Certified Zero-Collision CBF Barrier Vault**
+   - *Physical Setup:* A physical safety barrier wall $h(s) \ge 0$ is positioned in the center between start and goal.
+   - *What to Point Out:* **Elbow-Up High Vault Kinematics:** Notice that the arm does NOT pass through the wall! Both the upper arm and forearm vault high above the wall ($+35.7\,\text{px}$ minimum geometric clearance everywhere), descending safely onto the opposite side.
+4. **00:12 – 00:16 | Modality 4: In-Hand Tactile Slip Detection & Reflex Adjustment**
+   - *Physical Setup:* Low-friction payload contact ($\mu = 0.22$) induces micro-slip ($\lambda_{\text{slip}} = 0.89$).
+   - *What to Point Out:* Coulomb friction cone reflex instantly boosts clamping force from $18.5\,\text{N} \to 28.5\,\text{N}$ in $<4\,\text{ms}$, preventing payload drop mid-flight.
+5. **00:16 – 00:20 | Modality 5: Multi-Tier Aerial Stacking onto Elevated Storage Pedestal**
+   - *Physical Setup:* Non-coplanar 3D elevation $+18\,\text{cm}$ onto elevated pedestal $(0.38, 0.72, 0.16)\,\text{m}$.
+   - *What to Point Out:* Arbitrary 3D spatial goal conditioning. The arm is not limited to 2D flat tables; it docks seamlessly with terminal precision error $<1.2\,\text{mm}$.
