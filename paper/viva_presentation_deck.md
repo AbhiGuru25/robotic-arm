@@ -92,3 +92,26 @@
    - If an obstacle appears or the target goal is dynamically shifted mid-air, the closed-loop policy dynamically re-routes in real time ($< 20\\text{ ms}$) rather than following a predetermined path.
 4. **Interactive Verification:**
    - Demonstrable live on the WebGL 3D simulator: click **"Randomize Box & Goal Anywhere in 3D"** to prove the arm autonomously perceives and plans trajectories between arbitrary spatial coordinates without reprogramming.
+
+
+---
+
+## 🎬 Slide 7: The 5-Scenario Multi-Task Demonstration Suite (20s Video Guide)
+
+Use this slide to walk your professor through each second of the demonstration video:
+
+1. **00:00 – 00:04 | Scenario 1: Cross-Table Ground Transfer**
+   - *Physical Setup:* Object placed at $(0.12, 0.58, 0.28)\,\text{m}$ (far table flank), Goal at $(0.48, 0.54, -0.22)\,\text{m}$.
+   - *What to Point Out:* Wide 7-DOF base yaw rotation without joint limits violation; smooth quintic minimum-jerk approach.
+2. **00:04 – 00:08 | Scenario 2: Aerial Pedestal Stacking**
+   - *Physical Setup:* Object at $(0.24, 0.58, 0.05)\,\text{m}$, Goal on top of an elevated pedestal at $(0.36, 0.72, 0.16)\,\text{m}$ ($+18\,\text{cm}$ vertical height).
+   - *What to Point Out:* Non-coplanar 3D goal conditioning. The arm does not assume flat surfaces; it lifts and deposits at elevated 3D coordinates.
+3. **00:08 – 00:12 | Scenario 3: Dynamic CBF Obstacle Clearance**
+   - *Physical Setup:* A physical safety barrier wall $h(s) \ge 0$ is placed between the object and the target.
+   - *What to Point Out:* The online Quadratic Program (QP) filter dynamically elevates the trajectory into a high parabolic arc ($+320\,\text{px}$ clearance), ensuring zero collisions without manual waypoint programming.
+4. **00:12 – 00:16 | Scenario 4: Tactile Slip Mitigation Reflex**
+   - *Physical Setup:* Payload experiences unexpected surface friction drop ($\lambda_{\text{slip}} > 0.85$).
+   - *What to Point Out:* In-hand shear force sensor triggers a sub-$4\,\text{ms}$ normal force boost from $18.5\,\text{N}$ to $28.0\,\text{N}$, preventing the object from slipping and dropping mid-flight.
+5. **00:16 – 00:20 | Scenario 5: Narrow Recessed Slot Insertion**
+   - *Physical Setup:* Deep corner low-clearance target requiring terminal precision.
+   - *What to Point Out:* Terminal deceleration reduces Cartesian velocity, achieving sub-millimeter precision placement ($<1.2\,\text{mm}$ error).

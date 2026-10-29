@@ -237,23 +237,26 @@
   </section>
 
   <!-- Experimental Video Demonstration Section -->
+    <!-- Experimental Video Demonstration Section -->
   <section id="video-demo" class="py-10 max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-3 gap-2">
       <div>
-        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Experimental Video Demonstration</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Physical simulation benchmark showing obstacle avoidance, goal re-conditioning, and friction adaptation</p>
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Experimental Video Demonstration (20s Multi-Task Suite)</h2>
+        <p class="text-xs text-slate-500 mt-0.5">High-fidelity 60 FPS PyBullet benchmark demonstrating 5 distinct operational scenarios</p>
       </div>
       <div class="flex items-center gap-2">
         <span class="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-mono rounded font-medium flex items-center gap-1.5">
-          <i class="fas fa-circle text-[8px] text-emerald-600"></i> 60 FPS PyBullet Benchmark
+          <i class="fas fa-circle text-[8px] text-emerald-600"></i> 60 FPS • 5 Scenarios • 1080p
         </span>
       </div>
     </div>
 
-    <!-- Clean Video Container -->
+    <!-- Clean Video Container with Controls & Scrubbing -->
     <div class="academic-card rounded-2xl p-2.5 overflow-hidden shadow-sm bg-slate-900">
       <video 
-        src="results/videos/robotic_arm_scientific_benchmark.mp4?v=dynamic_v2" 
+        id="benchmarkVideo"
+        src="results/videos/robotic_arm_scientific_benchmark.mp4?v=20s_suite" 
+        controls
         autoplay 
         loop 
         muted 
@@ -263,36 +266,65 @@
     </div>
     
     <div class="text-xs text-slate-500 text-center italic">
-      Figure 1: High-fidelity physical simulation of 7-DOF Franka Emika Panda arm executing 6D vision object perception and autonomous multi-goal manipulation across ground table and elevated platform coordinates.
+      Figure 1: High-fidelity physical simulation of 7-DOF Franka Emika Panda arm executing the 5-Scenario Multi-Task Manipulation Suite: (1) Ground Pick & Cross-Workspace Transport, (2) Aerial Pedestal Stacking, (3) CBF Safety Barrier Clearance, (4) In-Hand Tactile Slip Reflex Boost, and (5) Narrow Pocket Precision Insertion (<1.2mm error).
     </div>
 
-    <!-- Video Sub-Features Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-      <div class="academic-card rounded-lg p-4 space-y-1.5">
-        <div class="font-bold text-slate-900 flex items-center gap-2">
-          <i class="fas fa-route text-slate-600"></i> Dynamic Obstacle Bypass
-        </div>
-        <p class="text-slate-600 leading-relaxed text-[11px]">
-          Policy calculates real-time clearance arcs to navigate around dynamic workspace intrusions without collisions.
-        </p>
+    <!-- 5 Comprehensive Scenario Jump Cards -->
+    <div class="space-y-2">
+      <div class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
+        <span>Multi-Scenario Operational Breakdown (Click to Jump)</span>
+        <span class="text-[11px] font-normal text-slate-500 font-mono">Total Duration: 20.0s @ 60 FPS</span>
       </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+        <button onclick="seekBenchmarkVideo(0)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">1. Cross-Table</span>
+            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:00</span>
+          </div>
+          <p class="text-slate-600 leading-snug text-[10px]">
+            7-DOF wide workspace reachability across opposite table corners.
+          </p>
+        </button>
 
-      <div class="academic-card rounded-lg p-4 space-y-1.5">
-        <div class="font-bold text-slate-900 flex items-center gap-2">
-          <i class="fas fa-bullseye text-slate-600"></i> Mid-Air Re-Conditioning
-        </div>
-        <p class="text-slate-600 leading-relaxed text-[11px]">
-          Goal-conditioned state formulation allows the end-effector to re-route seamlessly when goal coordinates shift mid-trajectory.
-        </p>
-      </div>
+        <button onclick="seekBenchmarkVideo(4)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">2. Aerial Stacking</span>
+            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:04</span>
+          </div>
+          <p class="text-slate-600 leading-snug text-[10px]">
+            Non-coplanar 3D goal conditioning onto elevated aerial pedestal (+18cm).
+          </p>
+        </button>
 
-      <div class="academic-card rounded-lg p-4 space-y-1.5">
-        <div class="font-bold text-slate-900 flex items-center gap-2">
-          <i class="fas fa-sliders text-slate-600"></i> Friction Adaptation
-        </div>
-        <p class="text-slate-600 leading-relaxed text-[11px]">
-          Domain randomization ($\mu \in [0.2, 0.8]$) ensures robust zero-shot tactile grasp stability across varied contact surfaces.
-        </p>
+        <button onclick="seekBenchmarkVideo(8)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">3. CBF Barrier</span>
+            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:08</span>
+          </div>
+          <p class="text-slate-600 leading-snug text-[10px]">
+            Lie derivative barrier filter enforces high clearance arc over physical wall.
+          </p>
+        </button>
+
+        <button onclick="seekBenchmarkVideo(12)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">4. Slip Reflex</span>
+            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:12</span>
+          </div>
+          <p class="text-slate-600 leading-snug text-[10px]">
+            Coulomb friction cone reflex instantly boosts clamping force to 28.0N.
+          </p>
+        </button>
+
+        <button onclick="seekBenchmarkVideo(16)" class="academic-card rounded-lg p-3 text-left space-y-1 hover:border-sky-500 transition cursor-pointer group">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 group-hover:text-sky-600 text-[11px]">5. Precision Slot</span>
+            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">00:16</span>
+          </div>
+          <p class="text-slate-600 leading-snug text-[10px]">
+            Decelerated spline placement yielding final positioning error &lt;1.2mm.
+          </p>
+        </button>
       </div>
     </div>
   </section>
